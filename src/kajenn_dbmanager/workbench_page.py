@@ -75,6 +75,12 @@ class WorkbenchPage(Page):
         # access; Gramlot exposes no public name for it.
         return self._database_access.dbmanager
 
+    def run(self, action, **data):
+        """Run one Workbench action as the identity of this request; return its plain result."""
+        app = self.dbmanager
+        owner, admin = caller(self.request_identity, app.access_mode)
+        return app.workbench.call(action, data, owner, admin)
+
     @endpoint
     def workbench(self, action, data=None, **kwargs):
         """Run one Workbench action as the identity of this request.
