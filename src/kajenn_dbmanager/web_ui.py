@@ -1,4 +1,4 @@
-"""Small Gramlot core bridge for Kajenn 0.1; no dependency on the newer adapter."""
+"""Gramlot core bridge with page ownership supplied by the Kajenn application."""
 
 import json
 import re

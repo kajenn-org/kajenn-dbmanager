@@ -14,7 +14,7 @@ import os
 
 class Configuration(SqlDatabaseConfig):
     def main(self, root):
-        db = root.db('logical_name', implementation='postgresql',
+        db = root.db('logical_name', implementation='postgres',
                      conninfo=os.environ.get('DBMANAGER_TEST_DSN', 'dbname=physical_demo password=do-not-export'))
         table = db.schemas().schema('managed').tables().table('item', pkey='id')
         columns = table.columns()
@@ -43,8 +43,8 @@ def test_registered_inspection_never_connects_or_exports_credentials(registered,
     serialized = json.dumps(result)
     assert 'do-not-export' not in serialized and 'DBMANAGER_TEST_DSN' not in serialized
     assert '[hidden]' in serialized
-    assert 'SqlTable' in serialized and 'SqlColumn' in serialized and 'title' in serialized
-    assert result['backend'] == 'postgresql'
+    assert 'SqlTable' in serialized and 'DbColumnObj' in serialized and 'title' in serialized
+    assert result['backend'] == 'postgres'
     tree = result['object_tree']
     assert tree['name'] == 'db'
     assert [node['name'] for node in tree['children']] == ['schemas']
@@ -57,9 +57,6 @@ def test_registered_inspection_never_connects_or_exports_credentials(registered,
 
 
 def test_object_tree_keeps_package_ownership_when_sql_schema_is_shared(registered, monkeypatch):
-    from asqueel.contracts import ResolvedModel
-    if 'packages' not in ResolvedModel.__dataclass_fields__:
-        pytest.skip('Logical packages require Asqueel 0.6')
     import psycopg
     monkeypatch.setattr(psycopg, 'connect', lambda *a, **k: pytest.fail('Inspection connected'))
     (registered / 'configure.py').write_text(RECIPE.split('        table =')[0] + '''
@@ -74,7 +71,7 @@ def test_object_tree_keeps_package_ownership_when_sql_schema_is_shared(registere
     packages = {node['name']: node for node in groups['packages']}
     assert set(packages) == {'sales', 'crm', 'empty'}
     for name in ('sales', 'crm'):
-        assert packages[name]['type'] == 'Package'
+        assert packages[name]['type'] == 'DbPackageObj'
         tables = packages[name]['children'][0]
         assert tables['name'] == 'tables'
         assert [node['name'] for node in tables['children']] == ['item']
@@ -82,10 +79,9 @@ def test_object_tree_keeps_package_ownership_when_sql_schema_is_shared(registere
         assert item['type'] == 'SqlTable'
         assert item['attributes']['package_name'] == name
         assert item['attributes']['sql_schema'] == 'shared'
-    assert packages['empty']['children'][0]['children'] == []
-    schemas = {node['name']: node for node in groups['schemas']}
-    assert schemas['shared']['children'][0]['children'] == []
-    assert set(schemas) == {'shared'}
+    assert packages['empty']['children'] == []
+    # The viewer preserves logical ownership instead of adding a parallel schema tree.
+    assert set(groups) == {'packages'}
 
 
 def test_static_tree_does_not_evaluate_resolvers():

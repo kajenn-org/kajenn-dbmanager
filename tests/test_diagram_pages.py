@@ -58,7 +58,7 @@ def test_publish_and_view_persisted_snapshot(tmp_path, monkeypatch, mount):
 
 
 def test_mcp_returns_browser_link(server):
-    status, body = _request(server, '/mcp', method='POST', payload={
+    status, body = _request(server, '/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
         'params': {'name': 'publish_diagram', 'arguments': {'structure': STRUCTURE}},
     })

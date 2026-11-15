@@ -2,13 +2,12 @@
 
 import asyncio
 import json
-from types import SimpleNamespace
 
 import pytest
 from asqueel_migration import JsonStructureProducer
 from conftest import _request
 from cryptography.fernet import Fernet
-from kajenn import AsgiServer
+from kajenn import AsgiServer, Avatar
 
 from kajenn_dbmanager import operations
 from kajenn_dbmanager.app import DbManagerApp
@@ -21,7 +20,14 @@ def workbench(tmp_path, monkeypatch):
     monkeypatch.setenv('KAJENN_DBMANAGER_DB_DIR', str(tmp_path / 'db'))
     monkeypatch.setenv('KAJENN_DBMANAGER_STORAGE_KEY', Fernet.generate_key().decode())
     monkeypatch.chdir(tmp_path)
-    server = AsgiServer(applications=[(DbManagerApp, {'code': 'db', 'mount': 'dbmanager'})])
+    server = AsgiServer(
+        applications=[(DbManagerApp, {'code': 'db', 'mount': 'dbmanager'})],
+        auth={'bearer': {
+            'alice': {'token': 'test-alice', 'tags': ''},
+            'bob': {'token': 'test-bob', 'tags': ''},
+            'admin': {'token': 'test-admin', 'tags': 'dbmanager_admin'},
+        }},
+    )
     app = server.application_at('dbmanager')
     catalog = app._queries().catalog
     catalog.save('demo', {'dbname': 'demo', 'password': 'private-password'}, users=['local', 'alice'])
@@ -34,6 +40,10 @@ def workbench(tmp_path, monkeypatch):
 
 def call(app, action, data=None, owner='local', admin=True):
     return app._workbench.call(action, data or {'database': 'demo'}, owner, admin)
+
+
+def bearer(identity):
+    return [(b'authorization', f'Bearer test-{identity}'.encode())]
 
 
 def test_enrollment_preserves_inheritance_and_rejects_stale_edits(workbench):
@@ -92,7 +102,7 @@ def test_rest_mcp_and_local_boundary(workbench):
     request = {'action': 'list', 'data': {}}
     status, body = _request(server, '/dbmanager/console_action', method='POST', payload=request)
     assert status == 200 and json.loads(body)['databases'][0]['database'] == 'demo'
-    status, body = _request(server, '/dbmanager/mcp', method='POST', payload={
+    status, body = _request(server, '/dbmanager/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
         'params': {'name': 'console_action', 'arguments': request}})
     assert status == 200 and json.loads(body)['result']['structuredContent']['databases']
@@ -104,17 +114,116 @@ def test_rest_mcp_and_local_boundary(workbench):
     assert _request(server, '/dbmanager/ui/', client='192.0.2.10')[0] == 403
 
 
-def test_kajenn_identity_never_falls_back_to_local(workbench, monkeypatch):
+def test_kajenn_identity_never_falls_back_to_local(workbench):
     server, app = workbench
     app.access_mode = 'kajenn'
     assert _request(server, '/dbmanager/ui/')[0] == 401
-    monkeypatch.setattr(server, 'authenticate', lambda *args: SimpleNamespace(identity='alice', tags=set()))
     status, body = _request(server, '/dbmanager/console_action', client='192.0.2.10',
-                            method='POST', payload={'action': 'list'})
+                            method='POST', payload={'action': 'list'}, request_headers=bearer('alice'))
     assert status == 200 and json.loads(body)['identity'] == 'alice'
     assert not json.loads(body)['can_administer']
     assert _request(server, '/dbmanager/backups', client='192.0.2.10',
-                    method='POST', payload={})[0] == 403
+                    method='POST', payload={}, request_headers=bearer('alice'))[0] == 403
+
+
+@pytest.mark.parametrize('mode', ['local', 'kajenn'])
+@pytest.mark.parametrize('channel', ['api', 'mcp'])
+def test_authenticated_identity_uses_the_transport_channel(workbench, monkeypatch, mode, channel):
+    server, app = workbench
+    app.access_mode = mode
+    channels = []
+    authenticate = server.authenticate_credential
+
+    async def track_credential(credential, requested_channel):
+        channels.append(requested_channel)
+        return await authenticate(credential, requested_channel)
+
+    monkeypatch.setattr(server, 'authenticate_credential', track_credential)
+    arguments = {'action': 'list'}
+    path, payload = '/dbmanager/console_action', arguments
+    if channel == 'mcp':
+        path = '/dbmanager/_meta/mcp'
+        payload = {'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
+                   'params': {'name': 'console_action', 'arguments': arguments}}
+    status, body = _request(server, path, method='POST', payload=payload,
+                            request_headers=bearer('admin'))
+    assert status == 200, body
+    result = json.loads(body)
+    if channel == 'mcp':
+        result = result['result']['structuredContent']
+    assert result['identity'] == 'admin' and result['can_administer']
+    assert channels == [channel]
+
+
+@pytest.mark.parametrize('mode', ['local', 'kajenn'])
+def test_session_identity_and_header_precedence(workbench, mode):
+    server, app = workbench
+    app.access_mode = mode
+    session = server.session_store.create(Avatar('alice'))
+    cookie = [(b'cookie', f'session_id={session.id}'.encode())]
+    for headers, identity, databases in [(cookie, 'alice', ['demo']),
+                                         (cookie + bearer('bob'), 'bob', [])]:
+        status, body = _request(server, '/dbmanager/console_action', method='POST',
+                                payload={'action': 'list'}, request_headers=headers)
+        assert status == 200, body
+        result = json.loads(body)
+        assert result['identity'] == identity
+        assert [item['database'] for item in result['databases']] == databases
+        assert result['can_administer'] is (mode == 'local')
+    assert _request(server, '/dbmanager/console_action', method='POST',
+                    payload={'action': 'list'}, request_headers=cookie + bearer('invalid'))[0] == 401
+    status, body = _request(server, '/dbmanager/console_action', method='POST',
+                            payload={'action': 'list'})
+    if mode == 'local':
+        assert status == 200 and json.loads(body)['identity'] == 'local'
+    else:
+        assert status == 401
+
+
+@pytest.mark.parametrize('endpoint', ['console_action', 'mcp', 'ui/', 'diagrams/' + '0' * 32])
+def test_kajenn_surfaces_reject_missing_and_invalid_credentials(workbench, endpoint):
+    server, app = workbench
+    app.access_mode = 'kajenn'
+    for headers in [[], bearer('invalid')]:
+        assert _request(server, '/dbmanager/' + endpoint, method='POST', payload={},
+                        request_headers=headers)[0] == 401
+
+
+def test_kajenn_mcp_keeps_admin_requirement(workbench):
+    server, app = workbench
+    app.access_mode = 'kajenn'
+    assert _request(server, '/dbmanager/_meta/mcp', method='POST',
+                    payload={'jsonrpc': '2.0', 'id': 1, 'method': 'tools/list'},
+                    request_headers=bearer('alice'))[0] == 403
+
+
+def test_authenticated_ui_page_is_bound_to_session_identity(workbench):
+    pytest.importorskip('gramlot')
+    import re
+
+    from genro_tytx import from_tytx
+
+    server, app = workbench
+    app.access_mode = 'kajenn'
+    session = server.session_store.create(Avatar('alice'))
+    session_cookie = f'session_id={session.id}'.encode()
+    status, body, headers = _request(server, '/dbmanager/ui/chat', include_headers=True,
+                                    request_headers=[(b'cookie', session_cookie)])
+    assert status == 200, body
+    page = re.search(rb'"pageId":"([a-f0-9]+)"', body).group(1).decode()
+    ui_cookie = next(line.split(b';')[0] for line in headers[b'set-cookie'].splitlines()
+                     if line.startswith(b'dbmanager_ui='))
+    cookies = [(b'cookie', session_cookie + b'; ' + ui_cookie)]
+    payload = {'id': 'main', 'pageId': page, 'contentType': 'source', 'name': 'main', 'params': {}}
+    status, body = _request(server, '/dbmanager/ui/rpc', method='POST', payload=payload,
+                            request_headers=cookies)
+    assert status == 200 and 'value' in from_tytx(body.decode())
+    status, body = _request(server, '/dbmanager/ui/rpc', method='POST', payload=payload,
+                            request_headers=cookies + bearer('bob'))
+    assert status == 200 and from_tytx(body.decode())['error']['code'] == 'page_expired'
+    server.session_store.delete(session.id)
+    assert _request(server, '/dbmanager/ui/rpc', method='POST', payload=payload,
+                    request_headers=cookies)[0] == 401
 
 
 def test_gramlot_bootstrap_and_source(workbench):
@@ -225,25 +334,24 @@ def test_workbench_diagram_is_embeddable_and_profile_authorized(workbench, monke
     assert index['columns'] == {'name': None}
     assert index['index_name'] == 'customer_name_idx'
     app.access_mode = 'kajenn'
-    monkeypatch.setattr(server, 'authenticate', lambda *args: SimpleNamespace(identity='alice', tags=set()))
-    status, body, headers = _request(server, result['url'], include_headers=True)
+    status, body, headers = _request(server, result['url'], include_headers=True,
+                                    request_headers=bearer('alice'))
     assert status == 200
     assert b"frame-ancestors 'self'" in headers[b'content-security-policy']
     assert headers[b'x-frame-options'] == b'SAMEORIGIN'
-    assert _request(server, result['url'] + '.json')[0] == 200
-    monkeypatch.setattr(server, 'authenticate', lambda *args: SimpleNamespace(identity='bob', tags=set()))
-    assert _request(server, result['url'])[0] == 403
-    assert _request(server, result['url'] + '.json')[0] == 403
+    assert _request(server, result['url'] + '.json', request_headers=bearer('alice'))[0] == 200
+    assert _request(server, result['url'], request_headers=bearer('bob'))[0] == 403
+    assert _request(server, result['url'] + '.json', request_headers=bearer('bob'))[0] == 403
     with pytest.raises(QueryError):
         call(app, 'diagram', owner='bob')
-    monkeypatch.setattr(server, 'authenticate', lambda *args: SimpleNamespace(identity='alice', tags=set()))
     app._queries().catalog.save('demo', {'dbname': 'changed'}, users=['alice'], replace=True)
-    assert _request(server, result['url'])[0] == 403
+    assert _request(server, result['url'], request_headers=bearer('alice'))[0] == 403
 
 
-def test_legacy_diagrams_still_require_admin_in_kajenn_mode(workbench, monkeypatch):
+def test_legacy_diagrams_still_require_admin_in_kajenn_mode(workbench):
     server, app = workbench
     result = app._diagram_pages().create(operations.introspect({}), renderer='cytoscape')
     app.access_mode = 'kajenn'
-    monkeypatch.setattr(server, 'authenticate', lambda *args: SimpleNamespace(identity='alice', tags=set()))
-    assert _request(server, '/dbmanager/diagrams/' + result['diagram_id'])[0] == 403
+    path = '/dbmanager/diagrams/' + result['diagram_id']
+    assert _request(server, path, request_headers=bearer('alice'))[0] == 403
+    assert _request(server, path, request_headers=bearer('admin'))[0] == 200

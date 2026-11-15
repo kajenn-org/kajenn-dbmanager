@@ -133,7 +133,7 @@ def test_rest_and_mcp_generate_same_diagram(server, structure):
     status, body = _request(server, '/diagram', method='POST', payload=args)
     expected = json.loads(body)
     assert status == 200 and expected['tables'] == 3
-    status, body = _request(server, '/mcp', method='POST', payload={
+    status, body = _request(server, '/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
         'params': {'name': 'diagram', 'arguments': args},
     })

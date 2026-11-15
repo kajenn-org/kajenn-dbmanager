@@ -11,7 +11,7 @@ from kajenn_dbmanager.app import _OPERATIONS
 
 
 def test_generated_openapi_and_mcp_match(server):
-    status, body = _request(server, '/_meta/schema_json')
+    status, body = _request(server, '/_meta/api/schema_json')
     assert status == 200
     paths = json.loads(body)['paths']
     assert '/run_job' not in paths
@@ -19,7 +19,7 @@ def test_generated_openapi_and_mcp_match(server):
         assert set(paths[f'/{name}']) == {'post'}
         if name not in {'backups', 'capabilities', 'databases'}:
             assert 'requestBody' in paths[f'/{name}']['post']
-    status, body = _request(server, '/mcp', method='POST', payload={
+    status, body = _request(server, '/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 1, 'method': 'tools/list', 'params': {},
     })
     assert status == 200
@@ -37,7 +37,7 @@ def test_rest_and_mcp_call_same_plan(server, monkeypatch):
     status, body = _request(server, '/plan', method='POST', payload=arguments)
     assert status == 200
     assert json.loads(body)['plan_id'] == 'reviewed'
-    status, body = _request(server, '/mcp', method='POST', payload={
+    status, body = _request(server, '/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 2, 'method': 'tools/call',
         'params': {'name': 'plan', 'arguments': arguments},
     })
@@ -78,7 +78,7 @@ def test_invalid_arguments_never_reflect_input(server, endpoint, arguments):
     status, body = _request(server, f'/{endpoint}', method='POST', payload=arguments)
     assert status == 400
     assert b'private-secret' not in body
-    status, body = _request(server, '/mcp', method='POST', payload={
+    status, body = _request(server, '/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
         'params': {'name': endpoint, 'arguments': arguments},
     })
@@ -154,3 +154,15 @@ def test_queued_job_checks_destination_and_allows_password_rotation(
     status, body = _request(server, '/job', method='POST', payload={'task_id': task_id})
     assert status == 200
     assert b'old-secret' not in body and b'new-value' not in body
+
+
+def test_rejected_arguments_are_not_echoed(server):
+    secret = 'do-not-echo-9f3'
+    status, body = _request(server, '/introspect', method='POST', payload={'connection': secret})
+    assert status == 400 and secret.encode() not in body
+    status, body = _request(server, '/_meta/mcp', method='POST', payload={
+        'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
+        'params': {'name': 'introspect', 'arguments': {'connection': secret}},
+    })
+    assert secret.encode() not in body
+    assert b'Invalid operation arguments' in body

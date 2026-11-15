@@ -3,7 +3,7 @@
 > **Version 0.2.0:** install the optional extras for UI, PostgreSQL and AI queries.
 > Gramlot and AI workflows remain beta features. See [availability](availability.md).
 
-Requires Python 3.11+, `asqueel-migration` 0.2, and Kajenn 0.1.
+Requires Python 3.11+, `asqueel-migration` 0.3.5+ and Kajenn 0.9.2+.
 For the full web workbench, use the [complete installation](availability.md).
 For the API and CLI, install the PostgreSQL extra, which includes the database driver:
 
@@ -25,9 +25,9 @@ AsgiServer(applications=[DbManagerApp, DbManagerWorker]).serve(
 )
 ```
 
-- Swagger UI: `http://127.0.0.1:8000/_meta/docs`
-- Generated OpenAPI: `http://127.0.0.1:8000/_meta/schema_json`
-- MCP Streamable HTTP: `http://127.0.0.1:8000/mcp`
+- Swagger UI: `http://127.0.0.1:8000/_meta/api/docs`
+- Generated OpenAPI: `http://127.0.0.1:8000/_meta/api/schema_json`
+- MCP Streamable HTTP: `http://127.0.0.1:8000/_meta/mcp`
 
 PostgreSQL client programs `pg_dump` and `pg_restore` must also be on the
 server's PATH for backups. Install client tools compatible with your database
@@ -58,9 +58,9 @@ the application at the site root and other mounts retain their own routes.
   `/dbmanager/apply`, `/dbmanager/backup`, `/dbmanager/restore`, etc.
 - Optional rendering support: `POST /dbmanager/capabilities` with `{}`.
 - Diagram generation: `POST /dbmanager/diagram`.
-- Swagger UI: `/dbmanager/_meta/docs`.
-- OpenAPI: `/dbmanager/_meta/schema_json`, with `/dbmanager` as its server URL.
-- MCP: `/dbmanager/mcp` (tool names and arguments remain unchanged).
+- Swagger UI: `/dbmanager/_meta/api/docs`.
+- OpenAPI: `/dbmanager/_meta/api/schema_json`, with `/dbmanager` as its server URL.
+- MCP: `/dbmanager/_meta/mcp` (tool names and arguments remain unchanged).
 
 Direct operations need no `DbManagerWorker`. Background jobs are outside the
 current extension scope: do not use `submit`/`job` in this composition. Their

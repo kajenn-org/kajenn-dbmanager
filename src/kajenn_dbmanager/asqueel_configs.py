@@ -85,51 +85,17 @@ def configuration_tree(source):
 
 
 def object_tree(db):
-    """Organize public handles by logical owner, without following owner cycles.
+    """Display the current hierarchical model without rebuilding descriptor graphs."""
+    def walk(node):
+        attrs = dict(node.attributes)
+        display = node
+        if node.tag == 'table':
+            display = node.dbtable
+            attrs.update(package_name=node.pkg.name, sql_schema=node.pkg.sqlschema)
+        return _node(node.name, display, attrs, [walk(child) for child in node.children.values()])
 
-    Asqueel keeps operational tables in a flat registry. Package descriptors
-    supply their membership; schema-based recipes keep their original owners.
-    Collection nodes are viewer groupings, not additional runtime objects.
-    """
-    def group(name, children):
-        return {'name': name, 'type': 'Collection', 'attributes': {}, 'children': children}
-
-    def table_node(table):
-        columns = [_node(key, col, {'model': col.model}) for key, col in table.columns.items()]
-        relations = [_node(key, rel, {'model': rel.model}) for key, rel in table.relations.items()]
-        attrs = {f.name: getattr(table.model, f.name) for f in fields(table.model)
-                 if f.name not in {'columns', 'relations'}}
-        return _node(table.model.name, table, attrs, [
-            group('columns', columns), group('relations', relations),
-        ])
-
-    packages = getattr(db.model, 'packages', {})
-    schemas = getattr(db.model, 'schemas', {})
-    children, packaged = [], set()
-    if packages:
-        package_nodes = []
-        for name, descriptor in packages.items():
-            tables = [table_node(db.tables[key]) for key in descriptor.tables]
-            packaged.update(descriptor.tables)
-            package_nodes.append(_node(name, db.package(name), {'model': descriptor},
-                                       [group('tables', tables)]))
-        children.append(group('packages', package_nodes))
-
-    schema_tables = {name: [] for name in schemas}
-    for key, table in db.tables.items():
-        if key not in packaged:
-            schema_tables.setdefault(table.model.schema, []).append(table_node(table))
-    if schema_tables:
-        schema_nodes = []
-        for name, tables in schema_tables.items():
-            if name in schemas:
-                node = _node(name, db.schema(name), {'model': schemas[name]}, [group('tables', tables)])
-            else:
-                # Older Asqueel versions have schema names but no descriptors.
-                node = group(name, [group('tables', tables)])
-            schema_nodes.append(node)
-        children.append(group('schemas', schema_nodes))
-    return _node('db', db, {'name': db.model.name, 'backend': db.dialect.name}, children)
+    return _node('db', db, {'name': db.model.name, 'backend': db.adapter.dialect},
+                 [walk(db.model.namespaces)])
 
 
 @contextmanager
@@ -146,7 +112,7 @@ def _database(name):
     try:
         yield db
     finally:
-        db.close()
+        db.closeConnection()
 
 
 def _migration_inputs(db):
@@ -155,7 +121,7 @@ def _migration_inputs(db):
     from psycopg.conninfo import conninfo_to_dict
 
     implementation, conninfo, kwargs = connection_settings(db.config)
-    if implementation != 'postgresql':
+    if implementation not in ('postgres', 'postgres3'):
         raise QueryError('Asqueel migration comparison currently supports PostgreSQL only')
     connection = operations.connection_params(conninfo_to_dict(conninfo or '', **(kwargs or {})))
     desired = SqlMigrationRenderer(to_physical_builder(db.model)).render()
@@ -181,7 +147,7 @@ def dispatch(action, data):
     with _database(name) as db:
         if action == 'asqueel_inspect':
             return {'configuration': name, 'configuration_tree': configuration_tree(db.config.builder.source),
-                    'object_tree': object_tree(db), 'backend': db.dialect.name}
+                    'object_tree': object_tree(db), 'backend': db.adapter.dialect}
         connection, desired = _migration_inputs(db)
         target = {k: connection[k] for k in ('host', 'port', 'dbname', 'user') if k in connection}
         base = {'configuration': name, 'target': target, 'schemas': sorted(desired['root']['schemas'])}

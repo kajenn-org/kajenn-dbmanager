@@ -20,10 +20,10 @@ from kajenn import (
     HTTPBadRequest,
     HTTPException,
     HTTPForbidden,
-    McpOpenApiApplication,
     Response,
     RoutedApplication,
 )
+from kajenn.routed_application import _HandlerArgumentsInvalid, _HandlerSignatureInvalid
 from kajenn.tasks import new_descriptor
 
 from . import __version__, operations
@@ -48,8 +48,22 @@ _OPERATIONS = {
 class _InvalidArguments(HTTPBadRequest):
     """Hide client values included in framework validation exceptions."""
 
-    def __init__(self, _selector):
+    def __init__(self):
         super().__init__('Invalid operation arguments; check the request schema')
+
+
+async def _execute_hiding_arguments(application, request):
+    """Run Kajenn's execute; replace its argument errors, which quote the rejected values.
+
+    Kajenn keeps the validation error as ``__cause__`` and in the message; the MCP
+    face exposes both. Re-raising without a cause keeps credentials out of answers.
+    """
+    try:
+        return await RoutedApplication.execute(application, request)
+    except HTTPException as error:
+        if isinstance(error.__cause__, (_HandlerSignatureInvalid, _HandlerArgumentsInvalid)):
+            raise _InvalidArguments() from None
+        raise
 
 
 def _profile_signature(connection):
@@ -82,7 +96,7 @@ def _call(operation):
         raise HTTPException(500, 'Database operation failed; check the server configuration and database') from None
 
 
-class DbManagerApp(McpOpenApiApplication):
+class DbManagerApp(RoutedApplication):
     """Local PostgreSQL administration through REST and MCP.
 
     Both surfaces use identical handlers. This first release trusts local
@@ -117,20 +131,13 @@ class DbManagerApp(McpOpenApiApplication):
             self._query_manager.shutdown()
         super().on_shutdown()
 
-    def spread_over_params(self, node, data):
-        # Kajenn uses this binding hook for both REST and MCP. Keep its native
-        # validation and protocol handling, but never echo rejected arguments.
-        node.set_custom_exceptions({
-            'signature_error': _InvalidArguments,
-            'validation_error': _InvalidArguments,
-        })
-        return super().spread_over_params(node, data)
+    async def execute(self, request):
+        return await _execute_hiding_arguments(self, request)
 
     async def __call__(self, scope, receive, send):
-        avatar = scope.get('auth')
-        admin = self.access_mode == 'local' or (
-            avatar is not None and 'dbmanager_admin' in avatar.tags)
-        owner = avatar.identity if avatar is not None else 'local'
+        path = str(scope.get('path', '/')).strip('/')
+        segment = path.split('/')[0]
+        is_mcp = path in {'_meta/mcp', 'mcp'}
         if scope.get('type') == 'http':
             client = scope.get('client')
             try:
@@ -139,6 +146,15 @@ class DbManagerApp(McpOpenApiApplication):
                 local = False
             if self.access_mode == 'local' and not local:
                 raise HTTPForbidden('DB Manager is restricted to localhost')
+            # UI and diagram requests are served here, before route execution:
+            # resolve the identity now, through the host's auth for this channel.
+            scope['kajenn.channel'] = self.mcp_channel if is_mcp else self.http_channel
+            await self.authenticate_scope(scope)
+        avatar = scope.get('auth')
+        admin = self.access_mode == 'local' or (
+            avatar is not None and 'dbmanager_admin' in avatar.tags)
+        owner = avatar.identity if avatar is not None else 'local'
+        if scope.get('type') == 'http':
             if self.access_mode == 'kajenn' and (avatar is None or not avatar.identity):
                 raise HTTPException(401, 'Kajenn authentication is required')
             headers = dict(scope.get('headers', []))
@@ -156,7 +172,6 @@ class DbManagerApp(McpOpenApiApplication):
                 raise HTTPForbidden('Cross-site requests are not allowed')
             if origin and origin != f'{scope.get("scheme", "http")}://{host}':
                 raise HTTPForbidden('Cross-origin requests are not allowed')
-            segment = str(scope.get('path', '/')).strip('/').split('/')[0]
             if self.access_mode == 'kajenn' and not admin and segment not in {
                 'ui', 'console_action', 'databases', 'open_query_session', 'ask_query',
                 'query_session', 'close_query_session', 'capabilities', 'diagrams',
@@ -177,10 +192,10 @@ class DbManagerApp(McpOpenApiApplication):
                 return
             if segment == 'run_job':
                 raise HTTPForbidden('Internal task operation')
-            if segment in _OPERATIONS or segment == 'mcp':
+            if segment in _OPERATIONS or is_mcp:
                 if scope.get('query_string'):
                     raise HTTPBadRequest('Parameters belong in the JSON request body')
-                if segment != 'mcp' and scope.get('method') != 'POST':
+                if not is_mcp and scope.get('method') != 'POST':
                     raise HTTPException(405, 'Method Not Allowed', headers=[(b'allow', b'POST')])
                 if scope.get('method') == 'POST':
                     headers = dict(scope.get('headers', []))
@@ -194,7 +209,7 @@ class DbManagerApp(McpOpenApiApplication):
             _QUERY_OWNER.reset(token)
             _QUERY_ADMIN.reset(admin_token)
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def console_action(self, action: str, data: dict | None = None) -> dict:
         """Run a workbench operation using named authorized profiles, never exporting secrets."""
         return _call(lambda: self._workbench.call(
@@ -271,22 +286,22 @@ class DbManagerApp(McpOpenApiApplication):
             raise ValueError('Unknown connection profile')
         return operations.connection_params(profiles[name])
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def introspect(self, connection: dict, schemas: list[str] | None = None) -> dict:
         """Read the database and return its normalized JSON structure."""
         return _call(lambda: operations.introspect(connection, schemas))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def capabilities(self) -> dict:
         """Report optional Graphviz availability and the enabled diagram formats."""
         return _call(diagram_capabilities)
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def databases(self) -> dict:
         """List accessible encrypted database profile names; never return credentials."""
         return _call(lambda: {'databases': self._queries().catalog.list(_QUERY_OWNER.get())})
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def open_query_session(self, database: str, duration_minutes: int = 120) -> dict:
         """Select a named database, introspect it and warm its one-hour LLM cache.
 
@@ -295,7 +310,7 @@ class DbManagerApp(McpOpenApiApplication):
         """
         return _call(lambda: self._queries().open(database, duration_minutes, _QUERY_OWNER.get()))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def ask_query(self, session_id: str, question: str, output: str = 'sql',
                   max_rows: int = 200) -> dict:
         """Ask a question about the selected database, retaining previous questions.
@@ -308,17 +323,17 @@ class DbManagerApp(McpOpenApiApplication):
         return _call(lambda: self._queries().ask(
             session_id, question, output, max_rows, _QUERY_OWNER.get()))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def query_session(self, session_id: str) -> dict:
         """Report query-session expiry, model, structure version and cache usage."""
         return _call(lambda: self._queries().status(session_id, _QUERY_OWNER.get()))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def close_query_session(self, session_id: str) -> dict:
         """End the query session and stop its cache warmups."""
         return _call(lambda: self._queries().close(session_id, _QUERY_OWNER.get()))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def diagram(self, structure: dict | str, format: str = 'svg', direction: str = 'LR',
                 schemas: list[str] | None = None, tables: list[str] | None = None,
                 cluster: str | None = None, relatives: str = 'both', depth: int | None = None) -> dict:
@@ -326,7 +341,7 @@ class DbManagerApp(McpOpenApiApplication):
         return _call(lambda: diagram(structure, format, direction, schemas=schemas, tables=tables,
                                      cluster=cluster, relatives=relatives, depth=depth))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def publish_diagram(self, structure: dict | str, direction: str = 'LR',
                         title: str = 'Database diagram', schemas: list[str] | None = None,
                         tables: list[str] | None = None, cluster: str | None = None,
@@ -342,44 +357,44 @@ class DbManagerApp(McpOpenApiApplication):
         download = {'graph_url': f'{url}.json'} if renderer == 'cytoscape' else {'svg_url': f'{url}.svg'}
         return {**result, 'url': url, **download}
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def plan(self, connection: dict, structure: dict | str,
              format: str = 'json', allow_removals: bool = False) -> dict:
         """Validate JSON/XML and return SQL, warnings and the reviewed plan ID."""
         return _call(lambda: operations.plan(connection, structure, format, allow_removals))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def apply(self, connection: dict, structure: dict | str, expected_plan: str,
               format: str = 'json', allow_removals: bool = False) -> dict:
         """Execute a reviewed migration and report its post-apply verification."""
         return _call(lambda: operations.apply(connection, structure, expected_plan, format, allow_removals))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def check_connection(self, connection: dict) -> dict:
         """Check connectivity and report PostgreSQL version and migration capabilities."""
         return _call(lambda: operations.check_connection(connection))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def backup(self, connection: dict) -> dict:
         """Create a PostgreSQL custom-format archive; use submit for long jobs."""
         return _call(lambda: self._store().create(connection))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def backups(self) -> dict:
         """List completed archives and their metadata, without connection secrets."""
         return _call(lambda: {'backups': self._store().list()})
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def verify_backup(self, backup_id: str) -> dict:
         """Check the archive checksum and pg_restore table of contents."""
         return _call(lambda: self._store().verify(backup_id))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def restore(self, connection: dict, backup_id: str, confirm_database: str) -> dict:
         """Restore to an existing empty database named explicitly by confirm_database."""
         return _call(lambda: self._store().restore(connection, backup_id, confirm_database))
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def submit(self, operation: str, connection_name: str, backup_id: str = '',
                confirm_database: str = '') -> dict:
         """Queue backup/restore through Kajenn; only profile names enter its task spool."""
@@ -401,7 +416,7 @@ class DbManagerApp(McpOpenApiApplication):
             return {'task_id': task_id, 'status': 'pending'}
         return _call(enqueue)
 
-    @route(channel_channels='mcp,rest', openapi_method='post')
+    @route(channel_channels='mcp,api', openapi_method='post')
     def job(self, task_id: str) -> dict:
         """Return the state and result of a DB Manager background job."""
         def read():
@@ -419,6 +434,9 @@ class DbManagerWorker(RoutedApplication):
     """Kajenn task target, unreachable through HTTP and without public protocols."""
 
     mount = '_dbmanager_worker'
+
+    async def execute(self, request):
+        return await _execute_hiding_arguments(self, request)
 
     async def __call__(self, scope, receive, send):
         raise HTTPForbidden('Internal task application')

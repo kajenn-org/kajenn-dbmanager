@@ -264,7 +264,7 @@ def test_rest_open_mcp_ask_and_close(server, sessions, monkeypatch):
                             payload={'database': 'invoice', 'duration_minutes': 120})
     assert status == 200, body
     session_id = json.loads(body)['session_id']
-    status, body = _request(server, '/mcp', method='POST', payload={
+    status, body = _request(server, '/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call', 'params': {
             'name': 'ask_query', 'arguments': {'session_id': session_id,
                                              'question': 'Quali stati ci sono?', 'output': 'results'}}})
@@ -289,8 +289,7 @@ def test_cli_encrypts_stdin_without_printing_credentials(tmp_path, monkeypatch, 
 def test_http_identity_is_bound_to_session(server, sessions, monkeypatch):
     from kajenn.session.avatar import Avatar
     manager, _, _, _ = sessions
-    # The real middleware replaces scope auth with its authenticator's answer.
-    monkeypatch.setattr(server, 'authenticate', lambda scope: scope.get('auth'))
+    # Kajenn preserves an identity already authenticated by the host.
     monkeypatch.setattr(DbManagerApp, '_queries', lambda self: manager)
     status, body = _request(server, '/open_query_session', method='POST',
                             payload={'database': 'invoice'}, auth=Avatar('alice'))

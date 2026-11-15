@@ -67,7 +67,7 @@ configuration. Restart the server after changing its key configuration.
 
 ## MCP conversation
 
-Connect the MCP client to `/mcp`, or `/dbmanager/mcp` when mounted under that prefix.
+Connect the MCP client to `/_meta/mcp`, or `/dbmanager/_meta/mcp` when mounted under that prefix.
 For “Using DB Manager on test_invoice_pg, tell me which states exist”, the client
 can use this sequence (each object is the tool arguments):
 

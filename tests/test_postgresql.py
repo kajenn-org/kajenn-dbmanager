@@ -73,7 +73,7 @@ def test_http_plan_mcp_apply_and_idempotence(server, databases):
     assert status == 200, body
     plan = json.loads(body)
     assert 'CREATE TABLE' in plan['sql']
-    status, body = _request(server, '/mcp', method='POST', payload={
+    status, body = _request(server, '/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
         'params': {'name': 'apply', 'arguments': {**arguments, 'expected_plan': plan['plan_id']}},
     })

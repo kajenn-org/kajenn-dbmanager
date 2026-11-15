@@ -85,9 +85,9 @@ The server binds to `127.0.0.1`:
 
 | Interface | URL |
 | --- | --- |
-| Swagger UI | `http://127.0.0.1:8000/_meta/docs` |
-| OpenAPI | `http://127.0.0.1:8000/_meta/schema_json` |
-| MCP Streamable HTTP | `http://127.0.0.1:8000/mcp` |
+| Swagger UI | `http://127.0.0.1:8000/_meta/api/docs` |
+| OpenAPI | `http://127.0.0.1:8000/_meta/api/schema_json` |
+| MCP Streamable HTTP | `http://127.0.0.1:8000/_meta/mcp` |
 
 Backup and restore require compatible `pg_dump` and `pg_restore` executables on
 the server's `PATH`. PostgreSQL must already be running. Check an existing database:

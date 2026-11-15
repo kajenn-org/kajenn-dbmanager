@@ -295,7 +295,7 @@ changes or a specific diagram cannot be rendered. SVG requests retain the
 The CLI probes its own environment; REST/MCP probe the server environment.
 
 With the app mounted at `dbmanager`, use `/dbmanager/capabilities`,
-`/dbmanager/diagram` and `/dbmanager/mcp`.
+`/dbmanager/diagram` and `/dbmanager/_meta/mcp`.
 
 ## Python
 

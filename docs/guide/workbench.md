@@ -114,8 +114,11 @@ AsgiServer(applications=[
 ])
 ```
 
-The host must supply an authenticated Kajenn Avatar on every request. DB Manager
-has no login page and never falls back to `local` in this mode. Profile allowlists
+DB Manager resolves the caller through the host's Kajenn authentication before
+checking access, including UI and diagram requests. REST and MCP use their own
+authentication channels (`api` and `mcp`). Header credentials take precedence over
+the browser session; invalid credentials are rejected without falling back to the
+session. DB Manager has no login page and never falls back to `local` in this mode. Profile allowlists
 use `Avatar.identity`. New registrations belong to that identity. The
 `dbmanager_admin` tag is required to register connections, execute migrations,
 create backups or restore, and to access the legacy raw-connection/archive/MCP

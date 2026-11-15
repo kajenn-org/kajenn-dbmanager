@@ -55,7 +55,7 @@ def test_capabilities_rest_mcp_and_cli_agree_without_graphviz(server, monkeypatc
     assert status == 200
     expected = json.loads(body)
     assert expected['capabilities']['graphviz'] is False
-    status, body = _request(server, '/mcp', method='POST', payload={
+    status, body = _request(server, '/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
         'params': {'name': 'capabilities', 'arguments': {}},
     })

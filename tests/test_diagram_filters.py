@@ -134,7 +134,7 @@ def test_rest_mcp_and_published_page_share_filters(server, graph):
     assert status == 200
     expected = json.loads(body)
     assert expected['tables'] == 4
-    status, body = _request(server, '/mcp', method='POST', payload={
+    status, body = _request(server, '/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
         'params': {'name': 'diagram', 'arguments': {**args, 'format': 'dot'}},
     })

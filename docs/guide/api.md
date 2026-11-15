@@ -38,11 +38,11 @@ explicit mutation operations (`apply`, `backup`, `restore`, `submit`).
 Paths below are relative to `http://127.0.0.1:8000`. Every request uses
 `Content-Type: application/json`, including `POST /backups` and `POST /capabilities`
 with an empty object.
-Use `/_meta/docs` for interactive Swagger documentation and `/_meta/schema_json`
-for the generated OpenAPI schema. MCP clients connect to `/mcp` using Streamable
+Use `/_meta/api/docs` for interactive Swagger documentation and `/_meta/api/schema_json`
+for the generated OpenAPI schema. MCP clients connect to `/_meta/mcp` using Streamable
 HTTP and invoke tools with the same argument names.
 When mounted under a prefix, prepend it to REST, metadata and MCP URLs;
-for example `/dbmanager/capabilities` and `/dbmanager/mcp`. Tool names do not change.
+for example `/dbmanager/capabilities` and `/dbmanager/_meta/mcp`. Tool names do not change.
 
 | Operation | Required arguments | Optional arguments |
 | --- | --- | --- |
