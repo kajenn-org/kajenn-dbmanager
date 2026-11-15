@@ -12,7 +12,6 @@ from urllib.request import Request, urlopen
 from asqueel_migration.exceptions import SqlValidationError
 from kajenn import AsgiServer
 
-from kajenn_dbmanager.app import DbManagerApp, DbManagerWorker
 from kajenn_dbmanager.backups import BackupStore
 from kajenn_dbmanager.diagrams import DiagramRenderError, diagram, diagram_capabilities
 from kajenn_dbmanager.genropy import (
@@ -22,6 +21,7 @@ from kajenn_dbmanager.genropy import (
 )
 from kajenn_dbmanager.operations import DatabaseBusy
 from kajenn_dbmanager.query_profiles import ConnectionCatalog, QueryError
+from kajenn_dbmanager.site import site
 
 
 def _database_command(args):
@@ -206,11 +206,11 @@ def main(argv=None):
         return
     if args.ui:
         try:
-            import gramlot  # noqa: F401
+            import gramlot_py_server  # noqa: F401
         except ImportError:
             parser.error('Install kajenn-dbmanager[ui] to use --ui')
         print(f'DB Manager: http://127.0.0.1:{args.port}/ui/', flush=True)
-    AsgiServer(applications=[DbManagerApp, DbManagerWorker]).serve(host='127.0.0.1', port=args.port)
+    AsgiServer(config=site(ui=args.ui)).serve(host='127.0.0.1', port=args.port)
 
 
 if __name__ == '__main__':

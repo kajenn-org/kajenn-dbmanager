@@ -19,7 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 postgresql = ["asqueel-migration[postgresql]>=0.3.5"]
 queries = ["asqueel-migration[postgresql]>=0.3.5"]
-ui = ["gramlot==0.2.16"]
+ui = ["gramlot>=0.3.39", "gramlot-py-server[kajenn]>=0.3.31"]
 asqueel = ["asqueel[postgresql,migration]>=0.6.3,<0.7"]
 docs = ["sphinx>=8.0", "sphinx-rtd-theme>=3.0", "myst-parser>=4.0", "sphinxcontrib-mermaid>=2,<3"]
 dev = ["pytest>=7", "ruff", "testing.postgresql", "build"]

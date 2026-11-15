@@ -25,7 +25,7 @@ The first diagram shows the entry points and request dispatch:
 flowchart TB
     clients["HTTP / MCP clients"] --> kajenn["Kajenn ASGI server"]
     kajenn --> app["DbManagerApp · app.py"]
-    app --> ui["WebUI"]
+    kajenn --> ui["DbManagerUI · ui_app.py"]
     app --> routes["REST / MCP routes"]
     app --> resources["Diagram resources"]
     ui --> pages["Gramlot pages"]
@@ -76,9 +76,10 @@ profiles and guide metadata.
 
 | Class | Module | Responsibility and lifetime |
 | --- | --- | --- |
-| `DbManagerApp` | `app.py` | Kajenn `McpOpenApiApplication`; request boundary, decorated operations, lazy services and shutdown |
+| `DbManagerApp` | `app.py` | Kajenn `RoutedApplication`; request boundary, decorated operations, lazy services and shutdown |
 | `Workbench` | `workbench.py` | Profile-based workflow dispatcher owned by one app; coordinates guides, diagrams, maintenance and chat |
-| `WebUI` | `web_ui.py` | ASGI bridge to Gramlot core; created on the first UI request and closed with the app |
+| `DbManagerUI` | `ui_app.py` | Gramlot workbench on the `gramlot-py-server` Kajenn adapter, with the service's access guards |
+| access guards | `access.py` | Loopback, Host, Origin and identity checks shared by the service and the workbench |
 | `ShellPage` | `ui_pages.py` | Gramlot page for navigation and persistent iframe workspaces |
 | `PageBase` | `ui_pages.py` | Shared Gramlot page layout and native HTML forms |
 | `Page` subclasses | `pages/*.py` | Select a workspace's kind and title; `home.py` supplies the detailed English instructions |
@@ -109,14 +110,14 @@ it does not start a listener. The mount determines prefixes for API routes, UI
 assets and diagram URLs. See [installation](installation.md).
 
 For HTTP requests, `DbManagerApp.__call__()` checks local/Kajenn access mode,
-identity, administrator tags, Host and browser origin. It dispatches `/ui` to
-`WebUI`, `/diagrams` to snapshot handling, and other requests to Kajenn routing.
+identity, administrator tags, Host and browser origin (`access.py`). It dispatches
+`/diagrams` to snapshot handling and other requests to Kajenn routing.
 Identity and administrator status are propagated with `ContextVar` values and
 reset after the request. Methods decorated with `@route` supply the REST/MCP
 contracts. `_call()` maps service exceptions to controlled HTTP errors.
 
-The app owns a `Workbench`; it lazily creates `QuerySessions` under a lock and
-`WebUI` when needed. Shutdown closes Gramlot pages, stops query-cache maintenance,
+The app owns a `Workbench`; it lazily creates `QuerySessions` under a lock.
+Shutdown stops query-cache maintenance,
 clears sessions and invokes the superclass lifecycle hook. Sessions are not a
 distributed store: use the documented single-process deployment model.
 
@@ -453,12 +454,11 @@ provide the two-tab tree viewer; migrations reuse `operations.plan()` and
 See [Asqueel configurations](asqueel-configurations.md) for its source-only status
 and exact operating contract.
 
-`WebUI` hosts `gramlot.server.GramlotFileServer`. It serves bootstrap/runtime
-assets, dispatches the Source protocol and restricts page/asset names to an
-allowlist. A private cookie and Kajenn identity jointly own a Gramlot page.
-The standard Gramlot Kajenn adapter is not used because its required Kajenn
-version differs from this application's pinned range; the bridge is isolated
-so it can be replaced during a deliberate framework upgrade.
+`DbManagerUI` is a second Kajenn application on the same server. It extends the
+`gramlot-py-server` Kajenn adapter, which hosts `gramlot.server.GramlotFileServer`,
+serves runtime, themes and companion files and evaluates `auth` rules on Avatar
+tags. It applies the guards of `access.py` before the adapter and reaches the
+`DbManagerApp` of its server through `DbManagerUI.dbmanager`.
 
 `ShellPage.main()` builds navigation and the initial Getting started iframe.
 `PageBase` defines shared layout and forms. Small files such as `pages/chat.py`
@@ -495,7 +495,7 @@ encrypted by `ConnectionCatalog`; protect their server directories appropriately
   `DbManagerApp` route or a `Workbench.call()` action. Define identity checks,
   administrator requirements, confirmations and controlled error messages there.
 - **New workspace:** add a `PageBase` subclass and JavaScript module, register its
-  navigation entry and `WebUI` allowlists, and add its service/action handling.
+  navigation entry, and add its service/action handling.
   Keep business logic out of page definitions.
 - **New provider:** supply an object with `model` and `call(prefix, messages=None)`
   to `QuerySessions`. Preserve proposal, usage and warmup contracts. Tests inject
@@ -510,7 +510,7 @@ encrypted by `ConnectionCatalog`; protect their server directories appropriately
 ## Tests and recommended reading order
 
 Read `app.py`, then `workbench.py` and `operations.py`. Follow the relevant branch
-into profiles/queries, backups or diagrams. Read `web_ui.py`, `ui_pages.py` and
+into profiles/queries, backups or diagrams. Read `ui_app.py`, `ui_pages.py` and
 `pages/workbench.js` together to understand the browser integration.
 
 `tests/conftest.py` drives HTTP requests through the real ASGI stack.

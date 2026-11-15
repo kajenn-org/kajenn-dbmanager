@@ -97,6 +97,7 @@ def _request(
             'type': 'http',
             'method': method,
             'path': path,
+            'raw_path': path.encode(),
             'query_string': query,
             'headers': headers,
             'client': (client, 12345),

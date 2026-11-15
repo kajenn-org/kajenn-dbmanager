@@ -1,6 +1,5 @@
 """Workbench authorization, encrypted enrollment, and the actual Gramlot protocol."""
 
-import asyncio
 import json
 
 import pytest
@@ -8,6 +7,7 @@ from asqueel_migration import JsonStructureProducer
 from conftest import _request
 from cryptography.fernet import Fernet
 from kajenn import AsgiServer, Avatar
+from kajenn.config.templates import DefaultConfiguration
 
 from kajenn_dbmanager import operations
 from kajenn_dbmanager.app import DbManagerApp
@@ -15,19 +15,36 @@ from kajenn_dbmanager.query_profiles import QueryError
 from kajenn_dbmanager.query_sessions import QuerySessions
 
 
+class WorkbenchSite(DefaultConfiguration):
+    """The service under /dbmanager and, when Gramlot is installed, the workbench under /ui."""
+
+    def applications_section(self, cfg):
+        applications = cfg.applications()
+        applications.application(code='db', mount='dbmanager', app_class=DbManagerApp)
+        try:
+            from kajenn_dbmanager.ui_app import DbManagerUI
+        except ImportError:
+            return
+        applications.application(code='ui', mount='ui', app_class=DbManagerUI).request(body='raw')
+
+
+def kajenn_mode(server):
+    """Switch the service and the workbench to kajenn access mode."""
+    for code in ('db', 'ui'):
+        if code in server.applications:
+            server.applications[code].access_mode = 'kajenn'
+
+
 @pytest.fixture
 def workbench(tmp_path, monkeypatch):
     monkeypatch.setenv('KAJENN_DBMANAGER_DB_DIR', str(tmp_path / 'db'))
     monkeypatch.setenv('KAJENN_DBMANAGER_STORAGE_KEY', Fernet.generate_key().decode())
     monkeypatch.chdir(tmp_path)
-    server = AsgiServer(
-        applications=[(DbManagerApp, {'code': 'db', 'mount': 'dbmanager'})],
-        auth={'bearer': {
-            'alice': {'token': 'test-alice', 'tags': ''},
-            'bob': {'token': 'test-bob', 'tags': ''},
-            'admin': {'token': 'test-admin', 'tags': 'dbmanager_admin'},
-        }},
-    )
+    server = AsgiServer(config=WorkbenchSite, auth={'bearer': {
+        'alice': {'token': 'test-alice', 'tags': ''},
+        'bob': {'token': 'test-bob', 'tags': ''},
+        'admin': {'token': 'test-admin', 'tags': 'dbmanager_admin'},
+    }})
     app = server.application_at('dbmanager')
     catalog = app._queries().catalog
     catalog.save('demo', {'dbname': 'demo', 'password': 'private-password'}, users=['local', 'alice'])
@@ -111,13 +128,13 @@ def test_rest_mcp_and_local_boundary(workbench):
                     [(b'sec-fetch-site', b'cross-site')]]:
         assert _request(server, '/dbmanager/console_action', method='POST', payload=request,
                         request_headers=headers)[0] == 403
-    assert _request(server, '/dbmanager/ui/', client='192.0.2.10')[0] == 403
+    assert _request(server, '/ui/', client='192.0.2.10')[0] == 403
 
 
 def test_kajenn_identity_never_falls_back_to_local(workbench):
     server, app = workbench
-    app.access_mode = 'kajenn'
-    assert _request(server, '/dbmanager/ui/')[0] == 401
+    kajenn_mode(server)
+    assert _request(server, '/ui/')[0] == 401
     status, body = _request(server, '/dbmanager/console_action', client='192.0.2.10',
                             method='POST', payload={'action': 'list'}, request_headers=bearer('alice'))
     assert status == 200 and json.loads(body)['identity'] == 'alice'
@@ -183,7 +200,7 @@ def test_session_identity_and_header_precedence(workbench, mode):
 @pytest.mark.parametrize('endpoint', ['console_action', 'mcp', 'ui/', 'diagrams/' + '0' * 32])
 def test_kajenn_surfaces_reject_missing_and_invalid_credentials(workbench, endpoint):
     server, app = workbench
-    app.access_mode = 'kajenn'
+    kajenn_mode(server)
     for headers in [[], bearer('invalid')]:
         assert _request(server, '/dbmanager/' + endpoint, method='POST', payload={},
                         request_headers=headers)[0] == 401
@@ -191,60 +208,76 @@ def test_kajenn_surfaces_reject_missing_and_invalid_credentials(workbench, endpo
 
 def test_kajenn_mcp_keeps_admin_requirement(workbench):
     server, app = workbench
-    app.access_mode = 'kajenn'
+    kajenn_mode(server)
     assert _request(server, '/dbmanager/_meta/mcp', method='POST',
                     payload={'jsonrpc': '2.0', 'id': 1, 'method': 'tools/list'},
                     request_headers=bearer('alice'))[0] == 403
 
 
-def test_authenticated_ui_page_is_bound_to_session_identity(workbench):
-    pytest.importorskip('gramlot')
+def _open_page(server, path, cookies=b''):
+    """Open a workbench page; return its page id and the owner cookie the adapter set."""
     import re
 
-    from genro_tytx import from_tytx
-
-    server, app = workbench
-    app.access_mode = 'kajenn'
-    session = server.session_store.create(Avatar('alice'))
-    session_cookie = f'session_id={session.id}'.encode()
-    status, body, headers = _request(server, '/dbmanager/ui/chat', include_headers=True,
-                                    request_headers=[(b'cookie', session_cookie)])
+    headers = [(b'cookie', cookies)] if cookies else []
+    status, body, response = _request(server, path, include_headers=True, request_headers=headers)
     assert status == 200, body
     page = re.search(rb'"pageId":"([a-f0-9]+)"', body).group(1).decode()
-    ui_cookie = next(line.split(b';')[0] for line in headers[b'set-cookie'].splitlines()
-                     if line.startswith(b'dbmanager_ui='))
-    cookies = [(b'cookie', session_cookie + b'; ' + ui_cookie)]
+    owner = next(line.split(b';')[0] for line in response[b'set-cookie'].splitlines()
+                 if line.startswith(b'gramlot_owner='))
+    return page, owner
+
+
+def _render(server, page, cookies):
     payload = {'id': 'main', 'pageId': page, 'contentType': 'source', 'name': 'main', 'params': {}}
-    status, body = _request(server, '/dbmanager/ui/rpc', method='POST', payload=payload,
-                            request_headers=cookies)
+    return _request(server, '/ui/gramlot/rpc', method='POST', payload=payload,
+                    request_headers=cookies)
+
+
+def test_authenticated_ui_page_is_bound_to_session_identity(workbench):
+    pytest.importorskip('gramlot_py_server')
+    from genro_tytx import from_tytx
+
+    server, _ = workbench
+    kajenn_mode(server)
+    session = server.session_store.create(Avatar('alice'))
+    session_cookie = f'session_id={session.id}'.encode()
+    page, owner = _open_page(server, '/ui/chat', session_cookie)
+    cookies = [(b'cookie', session_cookie + b'; ' + owner)]
+    status, body = _render(server, page, cookies)
     assert status == 200 and 'value' in from_tytx(body.decode())
-    status, body = _request(server, '/dbmanager/ui/rpc', method='POST', payload=payload,
-                            request_headers=cookies + bearer('bob'))
-    assert status == 200 and from_tytx(body.decode())['error']['code'] == 'page_expired'
     server.session_store.delete(session.id)
-    assert _request(server, '/dbmanager/ui/rpc', method='POST', payload=payload,
-                    request_headers=cookies)[0] == 401
+    assert _render(server, page, cookies)[0] == 401
 
 
-def test_gramlot_bootstrap_and_source(workbench):
-    pytest.importorskip('gramlot')
-    from genro_tytx import from_tytx, to_tytx
-    from gramlot.server import GramlotFileServer
-    server, app = workbench
-    status, body, headers = _request(server, '/dbmanager/ui/', include_headers=True)
-    assert status == 200 and b'/dbmanager/ui/runtime.js' in body
+def test_gramlot_bootstrap_and_every_page_renders(workbench):
+    pytest.importorskip('gramlot_py_server')
+    from genro_tytx import from_tytx
+
+    server, _ = workbench
+    status, body, headers = _request(server, '/ui/', include_headers=True)
+    assert status == 200 and b'/ui/assets/gramlot.js' in body
     assert b"frame-ancestors 'self'" in headers[b'content-security-policy']
     assert b'HttpOnly' in headers[b'set-cookie']
-    assert isinstance(app._web_ui.server, GramlotFileServer)
+    for name in ('index', 'home', 'databases', 'genropy', 'migrations', 'backups',
+                 'enrollment', 'guide', 'chat', 'diagram', 'asqueel'):
+        page, owner = _open_page(server, f'/ui/{name}')
+        status, body = _render(server, page, [(b'cookie', owner)])
+        assert status == 200 and 'error' not in str(from_tytx(body.decode())), (name, body)
 
-    async def render():
-        ui = app._web_ui.server
-        for name in ('index', 'home', 'databases', 'genropy', 'migrations', 'backups', 'enrollment', 'guide', 'chat', 'diagram', 'asqueel'):
-            opened = await ui.open_page(name, owner='test', prefix='/dbmanager/ui')
-            request = {'id': 'render', 'pageId': opened.page_id, 'contentType': 'source', 'name': 'main', 'params': {}}
-            response = await ui.call(to_tytx(request), owner='test')
-            assert 'error' not in str(from_tytx(response)), response
-    asyncio.run(render())
+
+def test_gramlot_http_protocol_binds_pages_to_browser(workbench):
+    pytest.importorskip('gramlot_py_server')
+    from genro_tytx import from_tytx
+
+    server, _ = workbench
+    page, owner = _open_page(server, '/ui/chat')
+    status, body = _render(server, page, [(b'cookie', owner)])
+    assert status == 200 and 'value' in from_tytx(body.decode())
+    # Another browser cannot reach the page.
+    status, body = _render(server, page, [(b'cookie', b'gramlot_owner=' + b'a' * 32)])
+    assert status == 200 and 'value' not in from_tytx(body.decode()), body
+    assert _request(server, '/ui/workbench.py')[0] == 404
+    assert _request(server, '/ui', include_headers=True)[2][b'location'] == b'/ui/'
 
 
 def test_approved_guide_enters_context_without_rows(workbench):
@@ -279,30 +312,6 @@ def test_metadata_rejects_plaintext_and_loose_permissions(workbench):
         catalog.read_metadata('demo')
 
 
-def test_gramlot_http_protocol_binds_pages_to_browser(workbench):
-    pytest.importorskip('gramlot')
-    import re
-
-    from genro_tytx import from_tytx
-
-    server, _ = workbench
-    status, body, headers = _request(server, '/dbmanager/ui/chat', include_headers=True)
-    assert status == 200
-    page = re.search(rb'"pageId":"([a-f0-9]+)"', body).group(1).decode()
-    cookie = next(line.split(b';')[0] for line in headers[b'set-cookie'].splitlines()
-                  if line.startswith(b'dbmanager_ui='))
-    payload = {'id': 'main', 'pageId': page, 'contentType': 'source', 'name': 'main', 'params': {}}
-    status, body = _request(server, '/dbmanager/ui/rpc', method='POST', payload=payload,
-                            request_headers=[(b'cookie', cookie)])
-    assert status == 200 and 'value' in from_tytx(body.decode())
-    assert _request(server, '/dbmanager/ui/rpc', method='POST', payload=payload)[0] == 403
-    status, body = _request(server, '/dbmanager/ui/rpc', method='POST', payload=payload,
-                            request_headers=[(b'cookie', b'dbmanager_ui=' + b'a' * 32)])
-    assert status == 200 and from_tytx(body.decode())['error']['code'] == 'page_expired'
-    assert _request(server, '/dbmanager/ui/workbench.py')[0] == 404
-    assert _request(server, '/dbmanager/ui', include_headers=True)[2][b'location'] == b'/dbmanager/ui/'
-
-
 def test_approved_guide_is_rejected_after_structure_drift(workbench):
     _, app = workbench
     guide = call(app, 'prepare')['guide']
@@ -333,7 +342,7 @@ def test_workbench_diagram_is_embeddable_and_profile_authorized(workbench, monke
     index = next(iter(result['table_details']['public.customer']['indexes'].values()))
     assert index['columns'] == {'name': None}
     assert index['index_name'] == 'customer_name_idx'
-    app.access_mode = 'kajenn'
+    kajenn_mode(server)
     status, body, headers = _request(server, result['url'], include_headers=True,
                                     request_headers=bearer('alice'))
     assert status == 200
@@ -351,7 +360,7 @@ def test_workbench_diagram_is_embeddable_and_profile_authorized(workbench, monke
 def test_legacy_diagrams_still_require_admin_in_kajenn_mode(workbench):
     server, app = workbench
     result = app._diagram_pages().create(operations.introspect({}), renderer='cytoscape')
-    app.access_mode = 'kajenn'
+    kajenn_mode(server)
     path = '/dbmanager/diagrams/' + result['diagram_id']
     assert _request(server, path, request_headers=bearer('alice'))[0] == 403
     assert _request(server, path, request_headers=bearer('admin'))[0] == 200

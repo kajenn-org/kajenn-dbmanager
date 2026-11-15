@@ -17,11 +17,11 @@ python -m pip install 'kajenn-dbmanager[ui,queries]>=0.2.0'
 kajenn-dbmanager --ui --port 8000
 ```
 
-Open [the local workbench](http://127.0.0.1:8000/ui/). When the app is mounted at
-`dbmanager`, its URL is `/dbmanager/ui/`. The `ui` extra currently pins the tested
-Gramlot core to **0.2.16**; installing that extra makes the UI routes available.
-`--ui` checks the installation and prints the URL. The existing API and CLI remain
-available without Gramlot.
+Open [the local workbench](http://127.0.0.1:8000/ui/). The workbench is its own
+Kajenn application, `DbManagerUI`, mounted beside the service. The `ui` extra
+installs the latest Gramlot and the `gramlot-py-server` Kajenn adapter. `--ui`
+checks the installation, mounts the workbench at `/ui/` and prints the URL. The
+existing API and CLI remain available without Gramlot.
 
 Configure the encrypted profile key first using [Query sessions](queries.md).
 Registering a database checks connectivity and stores the connection encrypted;
@@ -105,13 +105,23 @@ Local mode is for a trusted personal machine, not isolation between its users.
 Cross-site requests and mismatching browser origins are rejected; the workbench
 is framed only by the same origin. All POST requests use JSON.
 
-For a host with authentication already configured, mount with:
+For a host with authentication already configured, mount the service and, if
+wanted, the workbench in the site recipe. The workbench needs the raw request body:
 
 ```python
-AsgiServer(applications=[
-    (DbManagerApp, {"code": "database_admin", "mount": "dbmanager",
-                    "access_mode": "kajenn"}),
-])
+from kajenn.config.templates import DefaultConfiguration
+from kajenn_dbmanager.app import DbManagerApp
+from kajenn_dbmanager.ui_app import DbManagerUI
+
+
+class Site(DefaultConfiguration):
+    def applications_section(self, cfg):
+        applications = cfg.applications()
+        applications.application(code="database_admin", mount="dbmanager",
+                                 app_class=DbManagerApp, access_mode="kajenn")
+        applications.application(code="database_admin_ui", mount="dbmanager-ui",
+                                 app_class=DbManagerUI,
+                                 access_mode="kajenn").request(body="raw")
 ```
 
 DB Manager resolves the caller through the host's Kajenn authentication before
@@ -136,16 +146,14 @@ session and concurrency limits remain in effect.
 
 ## Gramlot integration and beta evidence
 
-The current `gramlot-py-server` Kajenn adapter requires Kajenn >=0.4.1, whereas
-DB Manager currently depends on Kajenn <0.2. A small ASGI bridge therefore hosts
-the **Gramlot core** `GramlotFileServer` inside DB Manager's existing app. It serves
-bootstrap, runtime and fixed assets, and forwards the core's Source protocol.
-The browser page owner combines a private cookie with the current Kajenn identity.
+`DbManagerUI` extends the Kajenn `Application` of `gramlot-py-server`, which hosts
+`gramlot.server.GramlotFileServer`, serves the runtime, themes and collections and
+evaluates `auth` rules on the tags of the Kajenn Avatar. `DbManagerUI` adds the
+access-mode guards of the service (loopback, Host, Origin and identity) and reaches
+the `DbManagerApp` mounted on the same server. The adapter's `gramlot_owner` cookie
+ties a page to its browser; it is not authentication.
 There are no page-defined business endpoints; operations use the same
 `console_action` REST/MCP service.
 
-This bridge is deliberately isolated in `web_ui.py` so it can be replaced with
-the standard adapter after a deliberate Kajenn upgrade. A framework upgrade must
-recheck page loading, navigation, forms, identity propagation and saving. The POC
-is a reference for future grids and charts, not a promise that their APIs already
-exist in this core release.
+When `kajenn-gramlot` provides the official Kajenn host, `DbManagerUI` changes its
+base class and the pages stay as they are.

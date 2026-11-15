@@ -37,7 +37,7 @@ jobs:
             "$smoke_dir/bin/python" -m pip check
             (cd /tmp && "$smoke_dir/bin/python" -c "import kajenn_dbmanager; from kajenn_dbmanager.app import DbManagerApp; from importlib.metadata import version; assert kajenn_dbmanager.__version__ == version('kajenn-dbmanager')")
             "$smoke_dir/bin/kajenn-dbmanager" --help
-            (cd /tmp && "$smoke_dir/bin/python" -c "from kajenn_dbmanager.web_ui import WebUI; from importlib.resources import files; ui = WebUI(); ui.close(); root = files('kajenn_dbmanager'); assert root.joinpath('pages/home.py').is_file(); assert root.joinpath('static/cytoscape-view.html').is_file()")
+            (cd /tmp && "$smoke_dir/bin/python" -c "from kajenn_dbmanager.ui_app import DbManagerUI; from importlib.resources import files; root = files('kajenn_dbmanager'); assert root.joinpath('pages/home.py').is_file(); assert root.joinpath('static/cytoscape-view.html').is_file()")
           done
       - uses: actions/upload-artifact@v4
         with:

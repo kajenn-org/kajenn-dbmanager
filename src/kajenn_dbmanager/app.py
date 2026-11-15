@@ -7,10 +7,8 @@ import json
 import os
 import re
 from contextvars import ContextVar
-from ipaddress import ip_address
 from pathlib import Path
 from threading import Lock
-from urllib.parse import urlsplit
 from uuid import uuid4
 
 from asqueel_migration import StaleMigrationPlan, UnsupportedMigration
@@ -27,6 +25,7 @@ from kajenn.routed_application import _HandlerArgumentsInvalid, _HandlerSignatur
 from kajenn.tasks import new_descriptor
 
 from . import __version__, operations
+from .access import caller, check_access_mode, check_http, check_identity
 from .backups import BackupStore
 from .cytoscape_view import ASSETS, asset, interactive_viewer
 from .diagram_pages import DiagramPages, viewer
@@ -109,14 +108,16 @@ class DbManagerApp(RoutedApplication):
 
     def __init__(self, access_mode='local', **kwargs):
         super().__init__(**kwargs)
-        if access_mode not in {'local', 'kajenn'}:
-            raise ValueError('access_mode must be local or kajenn')
-        self.access_mode = access_mode
-        self._web_ui = None
+        self.access_mode = check_access_mode(access_mode)
         from .workbench import Workbench
         self._workbench = Workbench(self)
         self._query_manager = None
         self._query_lock = Lock()
+
+    @property
+    def workbench(self):
+        """The operations of the web workbench, called with the caller's owner and admin flag."""
+        return self._workbench
 
     def _queries(self):
         with self._query_lock:
@@ -125,8 +126,6 @@ class DbManagerApp(RoutedApplication):
             return self._query_manager
 
     def on_shutdown(self):
-        if self._web_ui is not None:
-            self._web_ui.close()
         if self._query_manager is not None:
             self._query_manager.shutdown()
         super().on_shutdown()
@@ -139,54 +138,20 @@ class DbManagerApp(RoutedApplication):
         segment = path.split('/')[0]
         is_mcp = path in {'_meta/mcp', 'mcp'}
         if scope.get('type') == 'http':
-            client = scope.get('client')
-            try:
-                local = client and ip_address(str(client[0]).split('%')[0]).is_loopback
-            except ValueError:
-                local = False
-            if self.access_mode == 'local' and not local:
-                raise HTTPForbidden('DB Manager is restricted to localhost')
-            # UI and diagram requests are served here, before route execution:
+            check_http(scope, self.access_mode)
+            # Diagram pages are served here, before route execution:
             # resolve the identity now, through the host's auth for this channel.
             scope['kajenn.channel'] = self.mcp_channel if is_mcp else self.http_channel
             await self.authenticate_scope(scope)
         avatar = scope.get('auth')
-        admin = self.access_mode == 'local' or (
-            avatar is not None and 'dbmanager_admin' in avatar.tags)
-        owner = avatar.identity if avatar is not None else 'local'
+        owner, admin = caller(avatar, self.access_mode)
         if scope.get('type') == 'http':
-            if self.access_mode == 'kajenn' and (avatar is None or not avatar.identity):
-                raise HTTPException(401, 'Kajenn authentication is required')
-            headers = dict(scope.get('headers', []))
-            host = headers.get(b'host', b'').decode('latin-1')
-            if self.access_mode == 'local' and host:
-                hostname = urlsplit('http://' + host).hostname
-                try:
-                    allowed_host = hostname == 'localhost' or ip_address(hostname).is_loopback
-                except ValueError:
-                    allowed_host = False
-                if not allowed_host:
-                    raise HTTPForbidden('Local mode requires a loopback Host')
-            origin = headers.get(b'origin', b'').decode('latin-1')
-            if headers.get(b'sec-fetch-site') == b'cross-site':
-                raise HTTPForbidden('Cross-site requests are not allowed')
-            if origin and origin != f'{scope.get("scheme", "http")}://{host}':
-                raise HTTPForbidden('Cross-origin requests are not allowed')
+            check_identity(avatar, self.access_mode)
             if self.access_mode == 'kajenn' and not admin and segment not in {
-                'ui', 'console_action', 'databases', 'open_query_session', 'ask_query',
+                'console_action', 'databases', 'open_query_session', 'ask_query',
                 'query_session', 'close_query_session', 'capabilities', 'diagrams',
             }:
                 raise HTTPForbidden('This surface requires the dbmanager_admin tag')
-            if segment == 'ui':
-                if scope.get('method') == 'POST' and headers.get(
-                    b'content-type', b'').split(b';')[0].strip() != b'application/json':
-                    raise HTTPBadRequest('An application/json request body is required')
-                if self._web_ui is None:
-                    from .web_ui import WebUI
-                    self._web_ui = WebUI()
-                prefix = (f'/{self.mount}' if self.mount else '') + '/ui'
-                await self._web_ui(scope, receive, send, prefix=prefix, identity=owner)
-                return
             if segment == 'diagrams':
                 await self._diagram_page(scope, receive, send, owner=owner, admin=admin)
                 return
