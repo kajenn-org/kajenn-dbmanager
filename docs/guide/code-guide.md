@@ -14,10 +14,10 @@ OpenAPI and MCP transport. Asqueel Migration supplies database introspection,
 structure validation, migration planning and application. DB Manager coordinates
 these capabilities, adds profiles and workflows, and exposes them to clients.
 
-The browser workbench is another client of those services. Gramlot builds its
-HTML pages; JavaScript calls the same `console_action` service available through
-REST/MCP. There is no independent browser-only implementation of migrations,
-backup or query execution.
+The browser workbench is another client of those services. Its Gramlot pages
+call page endpoints that run the same `Workbench` actions as `console_action`, as
+the identity of the request. There is no independent browser-only implementation
+of migrations, backup or query execution.
 
 The first diagram shows the entry points and request dispatch:
 
@@ -29,9 +29,9 @@ flowchart TB
     app --> routes["REST / MCP routes"]
     app --> resources["Diagram resources"]
     ui --> pages["Gramlot pages"]
-    pages -->|JavaScript requests| action["console_action"]
-    routes --> action
-    action --> workbench["Workbench"]
+    pages -->|page endpoints| workbench["Workbench"]
+    routes --> action["console_action"]
+    action --> workbench
     resources --> diagrams["DiagramPages"]
 
     classDef entry fill:#f5ebdd,stroke:#c78249,color:#2c2223
@@ -80,8 +80,9 @@ profiles and guide metadata.
 | `Workbench` | `workbench.py` | Profile-based workflow dispatcher owned by one app; coordinates guides, diagrams, maintenance and chat |
 | `DbManagerUI` | `ui_app.py` | Gramlot workbench on the `gramlot-py-server` Kajenn adapter, with the service's access guards |
 | access guards | `access.py` | Loopback, Host, Origin and identity checks shared by the service and the workbench |
-| `ShellPage` | `ui_pages.py` | Gramlot page for navigation and persistent iframe workspaces |
-| `PageBase` | `ui_pages.py` | Shared Gramlot page layout and native HTML forms |
+| `WorkbenchPage` | `workbench_page.py` | Base of the pages: the `workbench` endpoint, `run`, the profile select and the status line |
+| `ProfilesPage` | `profiles_page.py` | Databases and Genropy: frameGrid of profiles and registration dialog |
+| `GuidePage` | `guide_page.py` | Enrollment and Guide: notes, editable table and column grids |
 | `Page` subclasses | `pages/*.py` | Select a workspace's kind and title; `home.py` supplies the detailed English instructions |
 | `Logic` | `pages/workbench.js` | Browser-side event wiring, API calls, form state and result rendering |
 | `ConnectionCatalog` | `query_profiles.py` | Encrypted named connections, identity allowlists and encrypted workbench metadata |
@@ -448,8 +449,7 @@ snapshots have the separately documented administrator boundary.
 The source checkout adds `asqueel_configs.py`, an optional adapter to Asqueel's
 named registry, static Bag inspection, public live objects and physical Migration
 JSON projection. `Workbench` gates all `asqueel_*` actions on administrator
-access before loading recipes. `pages/asqueel.py`, `asqueel.js` and `asqueel.css`
-provide the two-tab tree viewer; migrations reuse `operations.plan()` and
+access before loading recipes. `pages/asqueel.py` provides the two-tab tree viewer; migrations reuse `operations.plan()` and
 `operations.apply()` with freshly loaded configuration and reviewed identifiers.
 See [Asqueel configurations](asqueel-configurations.md) for its source-only status
 and exact operating contract.
@@ -460,18 +460,15 @@ serves runtime, themes and companion files and evaluates `auth` rules on Avatar
 tags. It applies the guards of `access.py` before the adapter and reaches the
 `DbManagerApp` of its server through `DbManagerUI.dbmanager`.
 
-`ShellPage.main()` builds navigation and the initial Getting started iframe.
-`PageBase` defines shared layout and forms. Small files such as `pages/chat.py`
-set the page kind/title; `pages/home.py` adds operating instructions. These are
-real Gramlot page definitions using native HTML elements, not the POC's advanced
-component library.
-
-Each page exports the shared JavaScript `Logic` class. `start()` mounts listeners
-once, calls `console_action`, updates forms and renders output using text nodes.
-The shell retains iframe workspaces when switching pages. The home page performs
-no catalog or model requests. Diagram controls and canvas behavior live in their
-separate static viewer, while `workbench.js` handles profile selection and index
-details. `workbench.css` controls responsive navigation and workspace sizing.
+`pages/index.py` is a Gramlot `IndexPage`: a navigation tree and the pages in
+tabs; `index.js` exports the core `IndexLogic`. Every other page derives from
+`WorkbenchPage` and is written in Python with Gramlot widgets: `frameGrid`,
+`formlet`, `dialog`, `tree`, `tabContainer`, `codeMirror` and `chatMessages`.
+Page endpoints (`@endpoint`) call `WorkbenchPage.run()`, which runs a `Workbench`
+action with the owner and administrator flag of `request_identity`. Inline page
+code (actions, callbacks) needs `'unsafe-eval'` in the workbench CSP. `chat.js`
+only delegates message drawing to the core `chatRender`. `workbench.css` holds a
+few helper classes; colours come from the Gramlot theme.
 
 ## Persistence and ownership map
 
@@ -494,8 +491,8 @@ encrypted by `ConnectionCatalog`; protect their server directories appropriately
 - **New operation:** put reusable logic in a service module. Expose it with a typed
   `DbManagerApp` route or a `Workbench.call()` action. Define identity checks,
   administrator requirements, confirmations and controlled error messages there.
-- **New workspace:** add a `PageBase` subclass and JavaScript module, register its
-  navigation entry, and add its service/action handling.
+- **New workspace:** add a `WorkbenchPage` subclass under `pages/`, register its
+  navigation entry in `workbench_page.NAVIGATION`, and add its service/action handling.
   Keep business logic out of page definitions.
 - **New provider:** supply an object with `model` and `call(prefix, messages=None)`
   to `QuerySessions`. Preserve proposal, usage and warmup contracts. Tests inject
@@ -510,8 +507,8 @@ encrypted by `ConnectionCatalog`; protect their server directories appropriately
 ## Tests and recommended reading order
 
 Read `app.py`, then `workbench.py` and `operations.py`. Follow the relevant branch
-into profiles/queries, backups or diagrams. Read `ui_app.py`, `ui_pages.py` and
-`pages/workbench.js` together to understand the browser integration.
+into profiles/queries, backups or diagrams. Read `ui_app.py`, `workbench_page.py` and
+the pages under `pages/` together to understand the browser integration.
 
 `tests/conftest.py` drives HTTP requests through the real ASGI stack.
 `test_app.py` and `test_mounting.py` cover routing and boundaries;

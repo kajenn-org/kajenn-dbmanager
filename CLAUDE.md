@@ -24,7 +24,6 @@ uv venv .venv
 uv pip install --python .venv/bin/python -e '.[dev,postgresql,ui,queries,asqueel,docs]'
 .venv/bin/ruff check src tests
 TMPDIR=/tmp LC_ALL=en_US.UTF-8 .venv/bin/python -m pytest -q
-node --test tests/js/asqueel.test.mjs
 .venv/bin/sphinx-build -W -b html docs /tmp/kajenn-dbmanager-docs
 ```
 

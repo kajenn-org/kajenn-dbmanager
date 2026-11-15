@@ -49,8 +49,7 @@ Existing profiles are not overwritten from the UI.
   with draggable tables, zoom and schema/relationship filters. Open
   **Keys, indexes and constraints** below the viewer for per-table details, or use
   the full-page link for more drawing space. AI enrollment is not required.
-  Navigation collapses automatically when opening the diagram; use **☰** to
-  reopen it. The canvas fills the remaining workspace. **Filters** and
+  The navigation splitter gives the canvas more room. **Filters** and
   **Layout & export** expand on demand; **Tables / details** opens an overlay.
 - **Migrations:** read a registered database's structure, load or paste a target
   Migration JSON, preview the plan and explicitly apply the reviewed plan.
@@ -152,8 +151,8 @@ evaluates `auth` rules on the tags of the Kajenn Avatar. `DbManagerUI` adds the
 access-mode guards of the service (loopback, Host, Origin and identity) and reaches
 the `DbManagerApp` mounted on the same server. The adapter's `gramlot_owner` cookie
 ties a page to its browser; it is not authentication.
-There are no page-defined business endpoints; operations use the same
-`console_action` REST/MCP service.
+Page endpoints run the same `Workbench` actions as the `console_action`
+REST/MCP service, as the identity of the request.
 
 When `kajenn-gramlot` provides the official Kajenn host, `DbManagerUI` changes its
 base class and the pages stay as they are.

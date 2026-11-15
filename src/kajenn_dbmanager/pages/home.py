@@ -16,7 +16,6 @@ def section(parent, anchor, title, introduction, steps=()):
 
 class Page(WorkbenchPage):
     title = 'Getting started'
-    css = ('/workbench.css',)
 
     def main(self, root):
         pane = root.main(class_='page help-page', height='100vh', overflow='auto',
@@ -72,8 +71,8 @@ class Page(WorkbenchPage):
         section(pane, 'diagram', '4. Explore the database diagram',
                 'Open Operations → Database diagram, select a database and click Draw / refresh. '
                 'Migration reads the current structure; no AI enrollment is needed.', [
-                    'Navigation collapses to make room for the canvas. Use ☰ to reopen it or Full page ↗ '
-                    'to open the viewer separately.',
+                    'Drag the navigation splitter to give the canvas more room, or use Full page ↗ '
+                    'to open the viewer separately. Keys, indexes and constraints are in the tree on the right.',
                     'Fit shows the whole graph; Readable moves to a readable scale. Use + and − to adjust '
                     'zoom, drag table headers to move tables and scroll inside tables with more than 15 columns.',
                     'Expand Filters to select a SQL schema or a Cluster root table. Choose Ancestors, '

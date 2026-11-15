@@ -8,9 +8,9 @@ python -m pip install -e '.[ui,asqueel]'
 kajenn-dbmanager --ui
 ```
 
-Open **Registration → Asqueel configurations**. Gramlot authors the page;
-standard HTML tabs, expandable trees and JavaScript provide the first viewer.
-No additional Gramlot component library is required.
+Open **Registration → Asqueel configurations**. The page uses Gramlot trees and
+tabs: the configuration and the constructed objects side by side, then the
+desired and current Migration JSON, the reviewed plan and the guarded apply.
 
 ## Use the existing Asqueel registry
 

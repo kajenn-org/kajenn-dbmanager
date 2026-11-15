@@ -68,6 +68,7 @@ def as_bag(value):
 
 class WorkbenchPage(Page):
     title = 'DB Manager'
+    css = ('/workbench.css',)
 
     @property
     def dbmanager(self):
