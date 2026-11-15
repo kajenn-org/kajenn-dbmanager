@@ -11,3 +11,6 @@ connections.json
 docs/_build/
 # Local model experiments may contain database metadata and result rows.
 /experiments/
+
+# Private working documents (xmldocs plans, handoffs, notes).
+temp/
