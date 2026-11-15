@@ -5,8 +5,9 @@ profiles, introspection, diagrams, migrations, backups, restores and query sessi
 
 ## Repository rules
 
-- **Maintainer:** Giovanni Porcari (`genro`), who reviews every pull request.
-- **Target branch for PRs:** `main`.
+- **Maintainer:** Giovanni Porcari (`genro`).
+- **Branch:** work lands directly on `main`, without pull requests (the repository is a lab).
+  A commit is pushed only when ruff, the tests and the docs build pass.
 - **Language:** issues, pull requests, code comments, docs and commit messages in English.
 - **Forge:** GitHub, `kajenn-org/kajenn-dbmanager`; use the `gh` CLI.
 
