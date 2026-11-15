@@ -1,6 +1,5 @@
-from kajenn_dbmanager.ui_pages import PageBase
+from kajenn_dbmanager.guide_page import GuidePage
 
 
-class Page(PageBase):
-    kind = 'guide'
+class Page(GuidePage):
     title = 'Database Guide'
