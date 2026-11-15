@@ -1,6 +1,6 @@
 """English operating instructions for the current workbench beta."""
 
-from kajenn_dbmanager.ui_pages import PageBase
+from kajenn_dbmanager.workbench_page import WorkbenchPage
 
 
 def section(parent, anchor, title, introduction, steps=()):
@@ -14,9 +14,15 @@ def section(parent, anchor, title, introduction, steps=()):
     return block
 
 
-class Page(PageBase):
-    kind = 'home'
+class Page(WorkbenchPage):
     title = 'Getting started'
+    css = ('/workbench.css',)
+
+    def main(self, root):
+        pane = root.main(class_='page help-page', height='100vh', overflow='auto',
+                         padding='16px 24px')
+        pane.h1(self.title)
+        self.content(pane)
 
     def content(self, pane):
         pane.p('Your guide to registering databases, exploring their structure, '
@@ -33,8 +39,8 @@ class Page(PageBase):
             toc.a(label, href=f'#{anchor}')
 
         section(pane, 'access', '1. Before you start',
-                'Use the navigation menu to open a workspace. Open pages are retained while you switch '
-                'sections. The ☰ button shows or hides navigation; Getting started brings you back here.', [
+                'Use the navigation tree to open a workspace. Each page opens in its own tab and keeps '
+                'its state while you switch tabs; the splitter resizes or hides the navigation.', [
                     'Local mode is intended for a trusted personal machine. It accepts localhost access '
                     'and does not show a separate login form.',
                     'When hosted by Kajenn, sign in through the host. Your identity determines which '

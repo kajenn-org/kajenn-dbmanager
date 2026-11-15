@@ -77,11 +77,34 @@ class WorkbenchPage(Page):
 
     @endpoint
     def workbench(self, action, data=None, **kwargs):
-        """Run one Workbench action as the identity of this request."""
+        """Run one Workbench action as the identity of this request.
+
+        The action arguments come from ``data`` (a Bag or mapping) and from every
+        ``data_<key>`` keyword; other keywords (triggers such as ``refresh``) are ignored.
+        """
         app = self.dbmanager
         owner, admin = caller(self.request_identity, app.access_mode)
         data = data.as_dict(recursive=True) if isinstance(data, Bag) else dict(data or {})
+        data.update({key.removeprefix('data_'): value for key, value in kwargs.items()
+                     if key.startswith('data_')})
         return as_bag(app.workbench.call(action, data, owner, admin))
+
+    @endpoint
+    def profile_names(self, **kwargs):
+        """The caller's profile names as filteringSelect values: ``name:name,...``."""
+        app = self.dbmanager
+        owner, admin = caller(self.request_identity, app.access_mode)
+        names = [item['database'] for item in app.workbench.call('list', {}, owner, admin)['databases']]
+        return ','.join(f'{name}:{name}' for name in names)
+
+    def load_profiles(self, page, values='profileValues'):
+        """Load the caller's profile names once into ``values``, for ``database_select``."""
+        page.dataRpc('profile_names', result_path=values, _onStart=True)
+
+    def database_select(self, parent, value, *, lbl='Database', values='profileValues', **attributes):
+        """A select of the caller's profiles, loaded by ``load_profiles``."""
+        return parent.filteringSelect(value=value, values=f'^{values}', lbl=lbl,
+                                      placeholder='Select a database', **attributes)
 
     def status(self, parent, path='.status'):
         """The line where actions report their outcome."""
