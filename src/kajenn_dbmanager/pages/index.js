@@ -1,1 +1,1 @@
-export {Logic} from './workbench.js';
+export {IndexLogic as Logic} from '@gramlot/gramlot/page';

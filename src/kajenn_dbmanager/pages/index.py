@@ -1,5 +1,8 @@
-from kajenn_dbmanager.ui_pages import ShellPage
+from gramlot import IndexPage
+
+from kajenn_dbmanager.workbench_page import navigation
 
 
-class Page(ShellPage):
-    pass
+class Page(IndexPage):
+    title = 'DB Manager'
+    navigation = navigation()

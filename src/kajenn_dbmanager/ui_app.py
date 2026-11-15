@@ -13,8 +13,10 @@ from .access import check_access_mode, check_http, check_identity
 
 PAGES = Path(__file__).with_name('pages')
 
+# Gramlot pages carry inline code (actions, controllers, callbacks), compiled in the
+# browser: 'unsafe-eval' is required. That code comes only from the server's pages.
 CONTENT_SECURITY_POLICY = (
-    "default-src 'self'; script-src 'self' 'nonce-{nonce}'; "
+    "default-src 'self'; script-src 'self' 'nonce-{nonce}' 'unsafe-eval'; "
     "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
     "connect-src 'self'; frame-src 'self'; frame-ancestors 'self'; "
     "object-src 'none'; base-uri 'self'; form-action 'self'"

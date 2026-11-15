@@ -364,3 +364,22 @@ def test_legacy_diagrams_still_require_admin_in_kajenn_mode(workbench):
     path = '/dbmanager/diagrams/' + result['diagram_id']
     assert _request(server, path, request_headers=bearer('alice'))[0] == 403
     assert _request(server, path, request_headers=bearer('admin'))[0] == 200
+
+
+def test_page_endpoint_runs_workbench_as_request_identity(workbench):
+    pytest.importorskip('gramlot_py_server')
+    from genro_tytx import from_tytx
+
+    server, _ = workbench
+    kajenn_mode(server)
+    session = server.session_store.create(Avatar('bob'))
+    session_cookie = f'session_id={session.id}'.encode()
+    page, owner = _open_page(server, '/ui/databases', session_cookie)
+    payload = {'id': 'list', 'pageId': page, 'contentType': 'data', 'name': 'workbench',
+               'params': {'action': 'list'}}
+    status, body = _request(server, '/ui/gramlot/rpc', method='POST', payload=payload,
+                            request_headers=[(b'cookie', session_cookie + b'; ' + owner)])
+    answer = from_tytx(body.decode())
+    assert status == 200 and 'value' in answer, answer
+    # bob is not in the allowlist of the demo profile and is not an administrator.
+    assert 'demo' not in str(answer['value']) and 'bob' in str(answer['value'])
