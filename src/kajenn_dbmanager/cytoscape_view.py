@@ -17,7 +17,7 @@ ASSETS = {
 
 
 def asset(name):
-    return files('asqueel_dbmanager').joinpath('static', name).read_text(encoding='utf-8')
+    return files('kajenn_dbmanager').joinpath('static', name).read_text(encoding='utf-8')
 
 
 def graph_data(structure, **filters):
@@ -60,7 +60,7 @@ def interactive_viewer(snapshot, page_id):
                          'graphvizPositions': positions},
                         ensure_ascii=True)
     config = config.replace('&', '\\u0026').replace('<', '\\u003c').replace('>', '\\u003e')
-    template = files('asqueel_dbmanager').joinpath('static', 'cytoscape-view.html').read_text()
+    template = files('kajenn_dbmanager').joinpath('static', 'cytoscape-view.html').read_text()
     content = template.replace('__CONFIG__', config, 1).replace('__TITLE__', html.escape(snapshot['title']), 1)
     policy = ("default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
               "img-src data: blob:; base-uri 'none'; frame-ancestors 'none'")

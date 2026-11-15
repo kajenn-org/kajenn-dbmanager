@@ -33,14 +33,14 @@ def read_secret(reference):
 
 def storage_key(reference_file=None):
     """Obtain key material separately from encrypted records, without creating it."""
-    key = os.environ.get('ASQUEEL_DBMANAGER_STORAGE_KEY')
-    reference = os.environ.get('ASQUEEL_DBMANAGER_STORAGE_KEY_REF')
+    key = os.environ.get('KAJENN_DBMANAGER_STORAGE_KEY')
+    reference = os.environ.get('KAJENN_DBMANAGER_STORAGE_KEY_REF')
     if not key and not reference and reference_file and reference_file.is_file():
         reference = reference_file.read_text().strip()
     if not key and reference and reference.startswith('op://'):
         key = read_secret(reference)
     if not key:
-        raise QueryError('Configure ASQUEEL_DBMANAGER_STORAGE_KEY_REF or ASQUEEL_DBMANAGER_STORAGE_KEY')
+        raise QueryError('Configure KAJENN_DBMANAGER_STORAGE_KEY_REF or KAJENN_DBMANAGER_STORAGE_KEY')
     return key
 
 
@@ -49,7 +49,7 @@ class ConnectionCatalog:
 
     def __init__(self, root=None, key=None):
         self.root = Path(root or os.environ.get(
-            'ASQUEEL_DBMANAGER_DB_DIR', '~/.kajen-dbmanager/db')).expanduser().absolute()
+            'KAJENN_DBMANAGER_DB_DIR', '~/.kajen-dbmanager/db')).expanduser().absolute()
         self._key = key
         self._manager = None
 

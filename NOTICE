@@ -1,4 +1,4 @@
-asqueel-dbmanager
+kajenn-dbmanager
 Copyright 2025 Softwell S.r.l.
 
 This product includes software developed at
@@ -14,4 +14,4 @@ The experimental diagram viewer bundles Cytoscape.js 3.34.3 (MIT License).
 Source: https://github.com/cytoscape/cytoscape.js
 Distribution: https://registry.npmjs.org/cytoscape/-/cytoscape-3.34.3.tgz
 The full upstream copyright and license are included in
-src/asqueel_dbmanager/static/cytoscape-LICENSE.txt.
+src/kajenn_dbmanager/static/cytoscape-LICENSE.txt.

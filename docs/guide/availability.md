@@ -10,12 +10,12 @@ for changes and implementation details.
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install 'asqueel-dbmanager[ui,queries,postgresql]==0.2.1'
-asqueel-dbmanager --ui --port 8000
+python -m pip install 'kajenn-dbmanager[ui,queries,postgresql]==0.2.1'
+kajenn-dbmanager --ui --port 8000
 ```
 
 To upgrade an existing installation, run `python -m pip install --upgrade
-'asqueel-dbmanager[ui,queries,postgresql]>=0.2.1'`. Back up the encrypted profile
+'kajenn-dbmanager[ui,queries,postgresql]>=0.2.1'`. Back up the encrypted profile
 catalog together with its metadata and preserve access to its encryption key.
 No automatic database schema migration is performed by package installation.
 
@@ -24,12 +24,12 @@ No automatic database schema migration is performed by package installation.
 Requires Python 3.11+ and access to PostgreSQL:
 
 ```bash
-git clone https://github.com/asqueel-org/asqueel-dbmanager.git
-cd asqueel-dbmanager
+git clone https://github.com/kajenn-org/kajenn-dbmanager.git
+cd kajenn-dbmanager
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[ui,queries,postgresql]'
-asqueel-dbmanager --ui --port 8000
+kajenn-dbmanager --ui --port 8000
 ```
 
 Open `http://127.0.0.1:8000/ui/`. The Getting started page explains registration,

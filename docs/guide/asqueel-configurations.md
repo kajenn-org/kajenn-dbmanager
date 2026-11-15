@@ -5,7 +5,7 @@ Install its optional integration and UI from the repository:
 
 ```bash
 python -m pip install -e '.[ui,asqueel]'
-asqueel-dbmanager --ui
+kajenn-dbmanager --ui
 ```
 
 Open **Registration → Asqueel configurations**. Gramlot authors the page;

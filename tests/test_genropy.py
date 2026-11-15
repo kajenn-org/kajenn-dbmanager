@@ -7,9 +7,9 @@ from types import SimpleNamespace
 import pytest
 from asqueel_migration import JsonStructureProducer
 
-from asqueel_dbmanager import __main__ as cli
-from asqueel_dbmanager import genropy
-from asqueel_dbmanager.__main__ import main
+from kajenn_dbmanager import __main__ as cli
+from kajenn_dbmanager import genropy
+from kajenn_dbmanager.__main__ import main
 
 
 @pytest.fixture(autouse=True)
@@ -163,7 +163,7 @@ def test_database_cli_requires_instance(command, capsys):
 @pytest.mark.parametrize('explicit_dir', [False, True])
 def test_cli_backup_store_selection(monkeypatch, tmp_path, capsys, explicit_dir):
     instance(monkeypatch, dict(implementation='postgres', dbname='invoice', password='secret'))
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_BACKUP_DIR', str(tmp_path / 'default'))
+    monkeypatch.setenv('KAJENN_DBMANAGER_BACKUP_DIR', str(tmp_path / 'default'))
     calls = []
 
     class Store:

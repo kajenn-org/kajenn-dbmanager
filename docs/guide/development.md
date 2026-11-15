@@ -49,11 +49,11 @@ in `docs/` are outside the public manual and source distribution.
 The repository's `.readthedocs.yaml` selects Ubuntu 24.04, Python 3.12,
 `docs/conf.py` and the `docs` installation extra. Warnings fail the build.
 
-To connect a new project, add `asqueel-org/asqueel-dbmanager` in the
+To connect a new project, add `kajenn-org/kajenn-dbmanager` in the
 [Read the Docs dashboard](https://app.readthedocs.org/dashboard/) with project
-slug `asqueel-dbmanager`, language English and default branch `main`. Connect
+slug `kajenn-dbmanager`, language English and default branch `main`. Connect
 the repository integration so pushes trigger builds. Build the `latest` version;
-its public URL is `https://asqueel-dbmanager.readthedocs.io/en/latest/`.
+its public URL is `https://kajenn-dbmanager.readthedocs.io/en/latest/`.
 If using manual import, configure the webhook shown in the project's Integrations
 page. See the [official project setup guide](https://docs.readthedocs.com/platform/stable/intro/add-project.html).
 
@@ -70,4 +70,4 @@ packages from PyPI; no source-revision dependency is required.
 Release tags must match `pyproject.toml`. The publishing workflow validates
 wheel and source archives, checks clean installations of both and publishes via
 PyPI Trusted Publishing. The publisher uses GitHub owner `asqueel-org`, repository
-`asqueel-dbmanager`, workflow `publish.yml` and environment `release`.
+`kajenn-dbmanager`, workflow `publish.yml` and environment `release`.

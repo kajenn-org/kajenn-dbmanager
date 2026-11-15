@@ -21,7 +21,7 @@ def _api():
         from asqueel import AsqueelDb
         from asqueel.registry import DatabaseRegistry
     except ImportError:
-        raise QueryError('Install asqueel-dbmanager[asqueel] to inspect Asqueel configurations') from None
+        raise QueryError('Install kajenn-dbmanager[asqueel] to inspect Asqueel configurations') from None
     return AsqueelDb, DatabaseRegistry
 
 

@@ -1,8 +1,8 @@
-Asqueel DB Manager
+Kajenn DB Manager
 ==================
 
 .. image:: ../assets/branding/asqueel-dbmanager-primary.svg
-   :alt: Asqueel DB Manager
+   :alt: Kajenn DB Manager
    :width: 360px
 
 A PostgreSQL administration service for reviewed schema migrations,
@@ -55,4 +55,4 @@ Related projects
   database access and queries.
 * `Asqueel Migration <https://asqueel-migration.readthedocs.io/en/latest/>`_:
   schema comparison and dialect-specific migration SQL.
-* `Source and issues <https://github.com/asqueel-org/asqueel-dbmanager>`_.
+* `Source and issues <https://github.com/kajenn-org/kajenn-dbmanager>`_.

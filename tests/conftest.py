@@ -4,7 +4,7 @@ import json
 import pytest
 from kajenn import AsgiServer
 
-from asqueel_dbmanager.app import DbManagerApp, DbManagerWorker
+from kajenn_dbmanager.app import DbManagerApp, DbManagerWorker
 
 
 def _request(
@@ -71,5 +71,5 @@ def _request(
 @pytest.fixture
 def server(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("ASQUEEL_DBMANAGER_BACKUP_DIR", str(tmp_path / "backups"))
+    monkeypatch.setenv("KAJENN_DBMANAGER_BACKUP_DIR", str(tmp_path / "backups"))
     return AsgiServer(applications=[DbManagerApp, DbManagerWorker])

@@ -10,7 +10,7 @@ For asynchronous backup/restore, configure a JSON file of named connections:
 {"development": {"host": "localhost", "dbname": "demo", "user": "postgres"}}
 ```
 
-Set `ASQUEEL_DBMANAGER_CONNECTIONS` to this file's absolute path. Keep the file
+Set `KAJENN_DBMANAGER_CONNECTIONS` to this file's absolute path. Keep the file
 private if it contains passwords. Submit with
 `{"operation":"backup","connection_name":"development"}`; use the returned
 `task_id` with `job`. Restore additionally takes `backup_id` and
@@ -26,8 +26,8 @@ of this application's contract. Archives have no automatic retention policy.
 Start the service with the connection file configured in its environment:
 
 ```bash
-export ASQUEEL_DBMANAGER_CONNECTIONS=/absolute/path/connections.json
-asqueel-dbmanager --port 8000
+export KAJENN_DBMANAGER_CONNECTIONS=/absolute/path/connections.json
+kajenn-dbmanager --port 8000
 ```
 
 Submit a backup:

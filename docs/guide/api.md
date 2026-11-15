@@ -118,7 +118,7 @@ protocol response; clients should not assume an HTTP error body is an MCP result
 
 ## Python composition
 
-Import `DbManagerApp` from `asqueel_dbmanager.app` for direct operations in a
+Import `DbManagerApp` from `kajenn_dbmanager.app` for direct operations in a
 Kajenn server; `DbManagerWorker` is needed only for legacy jobs. See the standalone
 and mounted examples in [installation](installation.md). Jobs remain outside
 the current extension scope. For direct schema migration without an HTTP

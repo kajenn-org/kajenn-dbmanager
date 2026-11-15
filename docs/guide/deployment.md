@@ -21,9 +21,9 @@ identifier. The engine's Python XML helper functions remain available.
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | CLI `--port` | `8000` | Local HTTP and MCP listener on `127.0.0.1` |
-| `ASQUEEL_DBMANAGER_BACKUP_DIR` | `.dbmanager/backups` | Server-side archive directory |
-| `ASQUEEL_DBMANAGER_DIAGRAM_DIR` | `.dbmanager/diagrams` | Persistent rendered diagram snapshots; preserve the directory to keep links valid |
-| `ASQUEEL_DBMANAGER_CONNECTIONS` | unset | Absolute path to named connection profiles for jobs |
+| `KAJENN_DBMANAGER_BACKUP_DIR` | `.dbmanager/backups` | Server-side archive directory |
+| `KAJENN_DBMANAGER_DIAGRAM_DIR` | `.dbmanager/diagrams` | Persistent rendered diagram snapshots; preserve the directory to keep links valid |
+| `KAJENN_DBMANAGER_CONNECTIONS` | unset | Absolute path to named connection profiles for jobs |
 | `PATH` | inherited environment | Must locate compatible `pg_dump` and `pg_restore` |
 
 SVG diagrams also require Graphviz's `dot` on `PATH`. Rendering runs locally

@@ -9,9 +9,9 @@ import pytest
 from asqueel_migration import JsonStructureProducer
 from conftest import _request
 
-from asqueel_dbmanager import __main__ as cli
-from asqueel_dbmanager.cytoscape_view import graph_data
-from asqueel_dbmanager.diagrams import diagram
+from kajenn_dbmanager import __main__ as cli
+from kajenn_dbmanager.cytoscape_view import graph_data
+from kajenn_dbmanager.diagrams import diagram
 
 
 @pytest.fixture

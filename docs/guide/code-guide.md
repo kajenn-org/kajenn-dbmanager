@@ -3,8 +3,8 @@
 This guide describes how DB Manager 0.2.0 is implemented. Start here when reading
 the repository or adding functionality; use the [API reference](api.md) for request
 contracts and the [workbench guide](workbench.md) for operating instructions.
-Source modules live under [`src/asqueel_dbmanager/`](https://github.com/asqueel-org/asqueel-dbmanager/tree/v0.2.0/src/asqueel_dbmanager).
-The matching [tests](https://github.com/asqueel-org/asqueel-dbmanager/tree/v0.2.0/tests) document the behavioral contracts.
+Source modules live under [`src/kajenn_dbmanager/`](https://github.com/kajenn-org/kajenn-dbmanager/tree/main/src/kajenn_dbmanager).
+The matching [tests](https://github.com/kajenn-org/kajenn-dbmanager/tree/main/tests) document the behavioral contracts.
 
 ## Architectural approach
 

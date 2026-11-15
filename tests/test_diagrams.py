@@ -10,8 +10,8 @@ import pytest
 from asqueel_migration import JsonStructureProducer
 from conftest import _request
 
-from asqueel_dbmanager import diagrams
-from asqueel_dbmanager.__main__ import main
+from kajenn_dbmanager import diagrams
+from kajenn_dbmanager.__main__ import main
 
 
 @pytest.fixture
@@ -178,7 +178,7 @@ def test_cli_invalid_input_does_not_create_output(tmp_path, capsys):
 
 
 def test_legacy_server_cli(monkeypatch):
-    from asqueel_dbmanager import __main__ as cli
+    from kajenn_dbmanager import __main__ as cli
     calls = []
     class Server:
         def __init__(self, **kwargs):

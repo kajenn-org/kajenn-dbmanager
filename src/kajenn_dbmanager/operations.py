@@ -58,7 +58,7 @@ def database_lock(connection):
     creation. External DDL clients must cooperate; this is not a DDL lock.
     """
     params = connection_params(connection)
-    digest = hashlib.sha256(('asqueel-dbmanager:' + params['dbname']).encode()).digest()
+    digest = hashlib.sha256(('kajenn-dbmanager:' + params['dbname']).encode()).digest()
     key = int.from_bytes(digest[:8], 'big', signed=True)
     with database(params) as db, db.adapter.connect(manager=True, autocommit=True) as conn:
         if not conn.execute('SELECT pg_try_advisory_lock(%s)', (key,)).fetchone()[0]:

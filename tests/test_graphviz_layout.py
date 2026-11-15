@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from asqueel_dbmanager import graphviz_layout as layout
-from asqueel_dbmanager.cytoscape_view import interactive_viewer
+from kajenn_dbmanager import graphviz_layout as layout
+from kajenn_dbmanager.cytoscape_view import interactive_viewer
 
 
 @pytest.fixture

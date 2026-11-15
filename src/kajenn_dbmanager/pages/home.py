@@ -1,6 +1,6 @@
 """English operating instructions for the current workbench beta."""
 
-from asqueel_dbmanager.ui_pages import PageBase
+from kajenn_dbmanager.ui_pages import PageBase
 
 
 def section(parent, anchor, title, introduction, steps=()):
@@ -159,7 +159,7 @@ class Page(PageBase):
                 'The published Read the Docs manual can lag behind local beta changes.')
         links = block.ul()
         for label, url in [
-            ('Published manual', 'https://asqueel-dbmanager.readthedocs.io/en/latest/'),
-            ('Source, local documentation and issues', 'https://github.com/asqueel-org/asqueel-dbmanager'),
+            ('Published manual', 'https://kajenn-dbmanager.readthedocs.io/en/latest/'),
+            ('Source, local documentation and issues', 'https://github.com/kajenn-org/kajenn-dbmanager'),
         ]:
             links.li().a(label, href=url, target='_blank', rel='noopener')

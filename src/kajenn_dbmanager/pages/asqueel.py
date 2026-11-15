@@ -1,6 +1,6 @@
 """Side-by-side configuration, live objects and migration JSON trees."""
 
-from asqueel_dbmanager.ui_pages import PageBase, button, field
+from kajenn_dbmanager.ui_pages import PageBase, button, field
 
 
 class Page(PageBase):

@@ -8,7 +8,7 @@ physical structure with Migration, and answer successive questions through a
 configured Anthropic model. Install the query extra:
 
 ```bash
-python -m pip install 'asqueel-dbmanager[queries]>=0.2.0'
+python -m pip install 'kajenn-dbmanager[queries]>=0.2.0'
 ```
 
 The default local mode retains the application's localhost boundary. Without an
@@ -23,9 +23,9 @@ functions, are the authorization boundary; read-only mode is not a function sand
 Install and sign in to the 1Password CLI (`op`). Create the encryption key once:
 
 ```bash
-asqueel-dbmanager db init-key --vault Employee
-asqueel-dbmanager db add test_invoice_pg -g test_invoice_pg
-asqueel-dbmanager db list
+kajenn-dbmanager db init-key --vault Employee
+kajenn-dbmanager db add test_invoice_pg -g test_invoice_pg
+kajenn-dbmanager db list
 ```
 
 Replace `Employee` with your vault. The `-g` import requires Genropy in the Python
@@ -51,12 +51,12 @@ Configuration overrides:
 
 | Variable | Purpose |
 | --- | --- |
-| `ASQUEEL_DBMANAGER_DB_DIR` | Override the encrypted profile directory |
-| `ASQUEEL_DBMANAGER_STORAGE_KEY_REF` | 1Password reference for the master key |
-| `ASQUEEL_DBMANAGER_STORAGE_KEY` | Inject master key material directly on a server |
-| `ASQUEEL_DBMANAGER_ANTHROPIC_KEY_REF` | 1Password reference for the provider API key |
+| `KAJENN_DBMANAGER_DB_DIR` | Override the encrypted profile directory |
+| `KAJENN_DBMANAGER_STORAGE_KEY_REF` | 1Password reference for the master key |
+| `KAJENN_DBMANAGER_STORAGE_KEY` | Inject master key material directly on a server |
+| `KAJENN_DBMANAGER_ANTHROPIC_KEY_REF` | 1Password reference for the provider API key |
 | `ANTHROPIC_API_KEY` | Inject the provider key directly instead |
-| `ASQUEEL_DBMANAGER_QUERY_MODEL` | Anthropic model; default `claude-sonnet-5-5` |
+| `KAJENN_DBMANAGER_QUERY_MODEL` | Anthropic model; default `claude-sonnet-5-5` |
 
 Environment secrets take precedence over references. Keys are loaded in process
 memory; profiles are decrypted only for an operation and connections are released

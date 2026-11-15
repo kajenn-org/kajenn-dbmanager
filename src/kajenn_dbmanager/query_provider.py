@@ -23,11 +23,11 @@ Structure follows (physical metadata only):
 class AnthropicQueries:
     def __init__(self, key=None, model=None):
         self._key = key
-        self.model = model or os.environ.get('ASQUEEL_DBMANAGER_QUERY_MODEL', 'claude-sonnet-5-5')
+        self.model = model or os.environ.get('KAJENN_DBMANAGER_QUERY_MODEL', 'claude-sonnet-5-5')
 
     def call(self, prefix, messages=None):
         key = self._key or os.environ.get('ANTHROPIC_API_KEY')
-        if not key and (reference := os.environ.get('ASQUEEL_DBMANAGER_ANTHROPIC_KEY_REF')):
+        if not key and (reference := os.environ.get('KAJENN_DBMANAGER_ANTHROPIC_KEY_REF')):
             self._key = key = read_secret(reference)
         if not key:
             raise QueryError('Configure ANTHROPIC_API_KEY in the server environment')

@@ -2,10 +2,10 @@
 
 from importlib.metadata import version as _package_version
 
-project = "Asqueel DB Manager"
+project = "Kajenn DB Manager"
 copyright = "2025-2026, Softwell S.r.l."
 author = "Softwell S.r.l."
-release = _package_version("asqueel-dbmanager")
+release = _package_version("kajenn-dbmanager")
 version = release
 language = "en"
 extensions = ["myst_parser", "sphinxcontrib.mermaid"]
@@ -28,7 +28,7 @@ include_patterns = ["index.rst", "guide/**"]
 exclude_patterns = ["_build", ".DS_Store"]
 myst_heading_anchors = 3
 html_theme = "sphinx_rtd_theme"
-html_title = "Asqueel DB Manager — Developer documentation"
+html_title = "Kajenn DB Manager — Developer documentation"
 html_logo = "../assets/branding/asqueel-dbmanager-inverse.svg"
 html_favicon = "../assets/branding/asqueel-monogram.svg"
 html_static_path = ["_static"]
@@ -41,7 +41,7 @@ html_theme_options = {
 html_context = {
     "display_github": True,
     "github_user": "asqueel-org",
-    "github_repo": "asqueel-dbmanager",
+    "github_repo": "kajenn-dbmanager",
     "github_version": "main",
     "conf_py_path": "/docs/",
 }

@@ -17,7 +17,7 @@ class WebUI:
         try:
             from gramlot.server import GramlotFileServer
         except ImportError:
-            raise HTTPException(503, 'Install asqueel-dbmanager[ui] to enable the web interface') from None
+            raise HTTPException(503, 'Install kajenn-dbmanager[ui] to enable the web interface') from None
         self.server = GramlotFileServer(PAGES, runtime_url='/runtime.js', rpc_url='/rpc',
                                         close_url='/close', page_ttl=28800, max_pages=512)
 

@@ -122,7 +122,7 @@ risultati reali per l'esempio degli stati su un dataset controllato.
 
 ## Riepilogo originario e obiettivi successivi
 
-Riepilogo del 12 ottobre 2026. Estensione futura di `asqueel-dbmanager`, discussa nella chat di `kajenn-mail-proxy` e riportata qui per proseguire nel progetto corretto. La funzionalità non è ancora implementata.
+Riepilogo del 12 ottobre 2026. Estensione futura di `kajenn-dbmanager`, discussa nella chat di `kajenn-mail-proxy` e riportata qui per proseguire nel progetto corretto. La funzionalità non è ancora implementata.
 
 ## Obiettivo espresso dal proprietario
 
@@ -138,8 +138,8 @@ La capacità appartiene al DBManager ed è riutilizzabile dalle applicazioni Kaj
 
 ## Base disponibile nel codice
 
-- `DbManagerApp` in `src/asqueel_dbmanager/app.py` deriva già da `McpOpenApiApplication`: le route pubbliche alimentano REST/OpenAPI e MCP.
-- L'operazione `introspect`, implementata in `src/asqueel_dbmanager/operations.py`, restituisce lo schema fisico normalizzato. Non contiene necessariamente il significato applicativo dei dati.
+- `DbManagerApp` in `src/kajenn_dbmanager/app.py` deriva già da `McpOpenApiApplication`: le route pubbliche alimentano REST/OpenAPI e MCP.
+- L'operazione `introspect`, implementata in `src/kajenn_dbmanager/operations.py`, restituisce lo schema fisico normalizzato. Non contiene necessariamente il significato applicativo dei dati.
 - Asqueel permette di costruire una query e ottenere `query.compiled`, con SQL e parametri, senza eseguirla e senza richiedere una connessione. L'esecuzione avviene con operazioni distinte, come `execute()` o `fetch()`.
 - Il manager attuale è orientato a PostgreSQL e chiamanti locali fidati. Il supporto SQLite di Asqueel non implica che il manager supporti già quel backend.
 

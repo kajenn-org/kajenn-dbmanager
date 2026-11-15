@@ -5,9 +5,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from asqueel_dbmanager import asqueel_configs, operations
-from asqueel_dbmanager.query_profiles import QueryError
-from asqueel_dbmanager.workbench import Workbench
+from kajenn_dbmanager import asqueel_configs, operations
+from kajenn_dbmanager.query_profiles import QueryError
+from kajenn_dbmanager.workbench import Workbench
 
 RECIPE = '''from asqueel import SqlDatabaseConfig
 import os

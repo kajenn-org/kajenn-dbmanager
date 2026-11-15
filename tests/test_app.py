@@ -6,8 +6,8 @@ import json
 import pytest
 from conftest import _request
 
-from asqueel_dbmanager import operations
-from asqueel_dbmanager.app import _OPERATIONS
+from kajenn_dbmanager import operations
+from kajenn_dbmanager.app import _OPERATIONS
 
 
 def test_generated_openapi_and_mcp_match(server):
@@ -89,10 +89,10 @@ def test_invalid_arguments_never_reflect_input(server, endpoint, arguments):
 
 
 def test_native_kajenn_task_execution_without_credentials_in_spool(server, tmp_path, monkeypatch):
-    from asqueel_dbmanager.backups import BackupStore
+    from kajenn_dbmanager.backups import BackupStore
     profile = tmp_path / 'connections.json'
     profile.write_text(json.dumps({'demo': {'dbname': 'demo', 'password': 'private-value'}}))
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_CONNECTIONS', str(profile))
+    monkeypatch.setenv('KAJENN_DBMANAGER_CONNECTIONS', str(profile))
     monkeypatch.setattr(BackupStore, 'create', lambda self, conn: {'database': conn['dbname']})
     status, body = _request(server, '/submit', method='POST', payload={
         'operation': 'backup', 'connection_name': 'demo',
@@ -125,11 +125,11 @@ def test_invalid_backup_and_job_ids(server):
 def test_queued_job_checks_destination_and_allows_password_rotation(
     server, tmp_path, monkeypatch, changed_field, expected_outcome,
 ):
-    from asqueel_dbmanager.backups import BackupStore
+    from kajenn_dbmanager.backups import BackupStore
     profile = tmp_path / 'connections.json'
     connection = {'dbname': 'demo', 'host': 'localhost', 'password': 'old-secret'}
     profile.write_text(json.dumps({'demo': connection}))
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_CONNECTIONS', str(profile))
+    monkeypatch.setenv('KAJENN_DBMANAGER_CONNECTIONS', str(profile))
     calls = []
 
     def backup(self, params):

@@ -10,15 +10,15 @@ For the API and CLI, install the PostgreSQL extra, which includes the database d
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install 'asqueel-dbmanager[postgresql]>=0.2.0'
-asqueel-dbmanager --port 8000
+python -m pip install 'kajenn-dbmanager[postgresql]>=0.2.0'
+kajenn-dbmanager --port 8000
 ```
 
 The command starts Kajenn on `127.0.0.1`. The equivalent Python composition is:
 
 ```python
 from kajenn import AsgiServer
-from asqueel_dbmanager.app import DbManagerApp, DbManagerWorker
+from kajenn_dbmanager.app import DbManagerApp, DbManagerWorker
 
 AsgiServer(applications=[DbManagerApp, DbManagerWorker]).serve(
     host='127.0.0.1', port=8000,
@@ -40,7 +40,7 @@ unique code and a mount segment. For example, alongside an existing `MainApp`:
 
 ```python
 from kajenn import AsgiServer
-from asqueel_dbmanager.app import DbManagerApp
+from kajenn_dbmanager.app import DbManagerApp
 from my_application import MainApp
 
 server = AsgiServer(applications=[

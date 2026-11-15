@@ -8,12 +8,12 @@ from asqueel_migration import JsonStructureProducer
 from conftest import _request
 from cryptography.fernet import Fernet
 
-from asqueel_dbmanager import query_profiles, query_provider
-from asqueel_dbmanager.__main__ import main
-from asqueel_dbmanager.app import DbManagerApp
-from asqueel_dbmanager.query_profiles import ConnectionCatalog, QueryError
-from asqueel_dbmanager.query_sessions import QuerySessions
-from asqueel_dbmanager.query_sql import ReadQueryError, prepare_sql
+from kajenn_dbmanager import query_profiles, query_provider
+from kajenn_dbmanager.__main__ import main
+from kajenn_dbmanager.app import DbManagerApp
+from kajenn_dbmanager.query_profiles import ConnectionCatalog, QueryError
+from kajenn_dbmanager.query_sessions import QuerySessions
+from kajenn_dbmanager.query_sql import ReadQueryError, prepare_sql
 
 
 @pytest.fixture
@@ -97,8 +97,8 @@ def test_profiles_do_not_overwrite_or_follow_symlinks(catalog):
 
 
 def test_onepassword_key_read_uses_reference_and_sanitizes_failure(monkeypatch):
-    monkeypatch.delenv('ASQUEEL_DBMANAGER_STORAGE_KEY', raising=False)
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_STORAGE_KEY_REF', 'op://vault/item/password')
+    monkeypatch.delenv('KAJENN_DBMANAGER_STORAGE_KEY', raising=False)
+    monkeypatch.setenv('KAJENN_DBMANAGER_STORAGE_KEY_REF', 'op://vault/item/password')
     calls = []
     def read(args, **kwargs):
         calls.append(args)
@@ -278,8 +278,8 @@ def test_rest_open_mcp_ask_and_close(server, sessions, monkeypatch):
 
 def test_cli_encrypts_stdin_without_printing_credentials(tmp_path, monkeypatch, capsys):
     import io
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_DB_DIR', str(tmp_path / 'db'))
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_STORAGE_KEY', Fernet.generate_key().decode())
+    monkeypatch.setenv('KAJENN_DBMANAGER_DB_DIR', str(tmp_path / 'db'))
+    monkeypatch.setenv('KAJENN_DBMANAGER_STORAGE_KEY', Fernet.generate_key().decode())
     monkeypatch.setattr('sys.stdin', io.StringIO('{"dbname":"example","password":"private-secret"}'))
     main(['db', 'add', 'example', '--stdin'])
     assert 'private-secret' not in capsys.readouterr().out

@@ -91,7 +91,7 @@ class DbManagerApp(McpOpenApiApplication):
     """
 
     mount = ''
-    openapi_info = {'title': 'Asqueel DB Manager', 'version': __version__}
+    openapi_info = {'title': 'Kajenn DB Manager', 'version': __version__}
 
     def __init__(self, access_mode='local', **kwargs):
         super().__init__(**kwargs)
@@ -201,10 +201,10 @@ class DbManagerApp(McpOpenApiApplication):
             action, data or {}, _QUERY_OWNER.get(), _QUERY_ADMIN.get()))
 
     def _store(self):
-        return BackupStore(os.environ.get('ASQUEEL_DBMANAGER_BACKUP_DIR', '.dbmanager/backups'))
+        return BackupStore(os.environ.get('KAJENN_DBMANAGER_BACKUP_DIR', '.dbmanager/backups'))
 
     def _diagram_pages(self):
-        return DiagramPages(os.environ.get('ASQUEEL_DBMANAGER_DIAGRAM_DIR', '.dbmanager/diagrams'))
+        return DiagramPages(os.environ.get('KAJENN_DBMANAGER_DIAGRAM_DIR', '.dbmanager/diagrams'))
 
     async def _diagram_page(self, scope, receive, send, *, owner='local', admin=False):
         if scope.get('method') not in {'GET', 'HEAD'}:
@@ -263,9 +263,9 @@ class DbManagerApp(McpOpenApiApplication):
                        media_type=media_type, headers=headers)(scope, receive, send)
 
     def _profile(self, name):
-        path = os.environ.get('ASQUEEL_DBMANAGER_CONNECTIONS')
+        path = os.environ.get('KAJENN_DBMANAGER_CONNECTIONS')
         if not path:
-            raise ValueError('Configure ASQUEEL_DBMANAGER_CONNECTIONS for background jobs')
+            raise ValueError('Configure KAJENN_DBMANAGER_CONNECTIONS for background jobs')
         profiles = json.loads(Path(path).read_text())
         if name not in profiles:
             raise ValueError('Unknown connection profile')

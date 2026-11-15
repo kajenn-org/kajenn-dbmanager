@@ -388,9 +388,9 @@ indica qui questa nuova consegna, non la `0.1.0` già pubblicata.
 | Job e stato | Task Kajenn e polling; proprietario fisso `dbmanager-local`, profili letti da file | Fuori dal perimetro attuale; proprietà, autorizzazioni e segreti al worker da riesaminare dopo la definizione Kajenn |
 | WAL/PITR | Assente | Fase successiva già concordata, compreso recupero del singolo DB attraverso cluster temporaneo |
 
-Riferimenti nel repository: [route e job](../src/asqueel_dbmanager/app.py),
-[operazioni e connessioni](../src/asqueel_dbmanager/operations.py),
-[archivi e restore](../src/asqueel_dbmanager/backups.py),
+Riferimenti nel repository: [route e job](../src/kajenn_dbmanager/app.py),
+[operazioni e connessioni](../src/kajenn_dbmanager/operations.py),
+[archivi e restore](../src/kajenn_dbmanager/backups.py),
 [limiti di deployment](guide/deployment.md), [test](../tests/).
 
 Verifica della base esistente: **28 test superati** il 12 ottobre 2026, usando
@@ -464,7 +464,7 @@ della source Asqueel e dei tre output, e la scelta del flusso linguaggio natural
 normalizzato Migration, anche dalla CLI e senza connessione al database.
 
 Implementata nel checkout, non ancora pubblicata: funzione Python `diagram`,
-omonima route REST/tool MCP e comando `asqueel-dbmanager diagram schema.json
+omonima route REST/tool MCP e comando `kajenn-dbmanager diagram schema.json
 -o schema.svg`. L'adattatore riusa la validazione Migration e Graphviz per
 layout/rendering SVG; l'esportazione DOT funziona senza Graphviz installato.
 Mostra tabelle, colonne, tipi, PK/FK e relazioni anche composte, tra schemi o
@@ -494,7 +494,7 @@ Disponibile anche `publish_diagram` via REST/MCP: genera uno snapshot SVG
 persistente e restituisce URL per pagina HTML (zoom, adattamento alla larghezza,
 download) e file SVG. I link rispettano il mount dell'app e l'accesso resta
 limitato a localhost. Il CLI accetta `diagram ... --server-url URL` e stampa
-l'URL completo. Gli snapshot risiedono in `ASQUEEL_DBMANAGER_DIAGRAM_DIR`
+l'URL completo. Gli snapshot risiedono in `KAJENN_DBMANAGER_DIAGRAM_DIR`
 (default `.dbmanager/diagrams`), senza credenziali; nessuna scadenza automatica.
 
 Filtri dei diagrammi implementati per Python, CLI, REST/MCP e pubblicazione HTML:
@@ -567,7 +567,7 @@ rinvio di WAL/PITR.
 ## 13. Capability Graphviz e montaggio dell'app — implementazione locale
 
 L'operazione `capabilities`, disponibile come route REST/tool MCP e comando
-`asqueel-dbmanager capabilities`, restituisce per esempio:
+`kajenn-dbmanager capabilities`, restituisce per esempio:
 
 ```json
 {

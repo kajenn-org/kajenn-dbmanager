@@ -5,7 +5,7 @@ from subprocess import CompletedProcess
 
 import pytest
 
-from asqueel_dbmanager import backups
+from kajenn_dbmanager import backups
 
 
 def test_failed_backup_cleans_partial_archive(tmp_path, monkeypatch):

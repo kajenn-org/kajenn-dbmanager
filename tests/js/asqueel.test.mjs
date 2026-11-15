@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 
-const source = await readFile(new URL('../../src/asqueel_dbmanager/pages/asqueel.js', import.meta.url), 'utf8');
+const source = await readFile(new URL('../../src/kajenn_dbmanager/pages/asqueel.js', import.meta.url), 'utf8');
 const {comparisonTrees} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 
 test('JSON comparison aligns absent and changed nodes on both sides', () => {

@@ -30,9 +30,9 @@ The `dot` executable must be on `PATH`. No additional Python rendering package
 is needed. Generate a standalone image or an editable DOT source:
 
 ```bash
-asqueel-dbmanager diagram schema.json -o schema.svg
-asqueel-dbmanager diagram schema.json --format dot -o schema.dot
-asqueel-dbmanager diagram schema.json --direction TB -o vertical.svg
+kajenn-dbmanager diagram schema.json -o schema.svg
+kajenn-dbmanager diagram schema.json --format dot -o schema.dot
+kajenn-dbmanager diagram schema.json --direction TB -o vertical.svg
 ```
 
 `--format` defaults to `svg`; it is not inferred from the output filename.
@@ -40,13 +40,13 @@ asqueel-dbmanager diagram schema.json --direction TB -o vertical.svg
 `-` reads stdin or writes stdout; output defaults to stdout:
 
 ```bash
-cat schema.json | asqueel-dbmanager diagram - --format dot > schema.dot
+cat schema.json | kajenn-dbmanager diagram - --format dot > schema.dot
 ```
 
 Input and output files use UTF-8. `-o` refuses to overwrite an existing file.
 Invalid input, file errors or renderer failures return exit status 2, with a
 message on stderr. The existing server command remains unchanged:
-`asqueel-dbmanager --port 8000`. `python -m asqueel_dbmanager` accepts the same
+`kajenn-dbmanager --port 8000`. `python -m kajenn_dbmanager` accepts the same
 arguments when using a source checkout.
 
 ### From a Genropy instance
@@ -54,14 +54,14 @@ arguments when using a source checkout.
 Use `-g` (or `--genropy`) instead of a JSON input file:
 
 ```bash
-asqueel-dbmanager diagram -g test_invoice_pg -o test_invoice_pg.svg
-asqueel-dbmanager diagram --genropy test_invoice_pg --format dot -o test_invoice_pg.dot
+kajenn-dbmanager diagram -g test_invoice_pg -o test_invoice_pg.svg
+kajenn-dbmanager diagram --genropy test_invoice_pg --format dot -o test_invoice_pg.dot
 ```
 
 The same instance selector works with the `introspect` and `backup` commands;
 see the [CLI guide](cli.md).
 
-Install `asqueel-dbmanager[postgresql]` in the Python environment where Genropy
+Install `kajenn-dbmanager[postgresql]` in the Python environment where Genropy
 and its dependencies are available. Genropy's configuration must resolve the
 instance name. SVG additionally requires Graphviz on `PATH`.
 
@@ -93,10 +93,10 @@ the CLI accept the same diagram filters. Filtering happens **after** validation
 of the complete input, without changing the database or the original JSON:
 
 ```bash
-asqueel-dbmanager diagram -g test_invoice_pg --schema invc -o invoices.svg
-asqueel-dbmanager diagram -g test_invoice_pg --table invc.invc_invoice --table invc.invc_invoice_row -o selected.svg
-asqueel-dbmanager diagram -g test_invoice_pg --cluster invc.invc_invoice --depth 1 -o cluster.svg
-asqueel-dbmanager diagram -g test_invoice_pg --cluster invc.invc_invoice --relatives ancestors -o ancestors.svg
+kajenn-dbmanager diagram -g test_invoice_pg --schema invc -o invoices.svg
+kajenn-dbmanager diagram -g test_invoice_pg --table invc.invc_invoice --table invc.invc_invoice_row -o selected.svg
+kajenn-dbmanager diagram -g test_invoice_pg --cluster invc.invc_invoice --depth 1 -o cluster.svg
+kajenn-dbmanager diagram -g test_invoice_pg --cluster invc.invc_invoice --relatives ancestors -o ancestors.svg
 ```
 
 For an HTML URL, replace `-o FILE` with
@@ -157,8 +157,8 @@ server; viewing a saved page requires neither Graphviz nor database access.
 From the CLI, publish to an already running server and print the full URL:
 
 ```bash
-asqueel-dbmanager diagram -g test_invoice_pg --server-url http://127.0.0.1:8000/dbmanager
-asqueel-dbmanager diagram structure.json --server-url http://127.0.0.1:8000/dbmanager
+kajenn-dbmanager diagram -g test_invoice_pg --server-url http://127.0.0.1:8000/dbmanager
+kajenn-dbmanager diagram structure.json --server-url http://127.0.0.1:8000/dbmanager
 ```
 
 Use the application's base URL, including its mount if present. The CLI sends
@@ -166,7 +166,7 @@ only the structure and direction to `publish_diagram`; Genropy connection
 settings remain local. `--server-url` cannot be combined with `-o` or DOT output.
 
 Snapshots contain the rendered SVG and title, not connection credentials or a
-database connection. They are stored in `ASQUEEL_DBMANAGER_DIAGRAM_DIR`, default
+database connection. They are stored in `KAJENN_DBMANAGER_DIAGRAM_DIR`, default
 `.dbmanager/diagrams` relative to the server's working directory. They survive
 server restarts when this directory is retained; use persistent shared storage
 for multiple processes or containers. There is no automatic expiry or cleanup.
@@ -181,7 +181,7 @@ The default Graphviz renderer, DOT/SVG exports and existing snapshot URLs remain
 unchanged. Opt into an independent interactive viewer with:
 
 ```bash
-asqueel-dbmanager diagram -g test_invoice_pg --cluster invc.invc_invoice --depth 1 --renderer cytoscape --server-url http://127.0.0.1:8000/dbmanager
+kajenn-dbmanager diagram -g test_invoice_pg --cluster invc.invc_invoice --depth 1 --renderer cytoscape --server-url http://127.0.0.1:8000/dbmanager
 ```
 
 REST/MCP callers pass `renderer="cytoscape"` to `publish_diagram`. Existing
@@ -262,12 +262,12 @@ caller-supplied server output paths. The existing localhost restriction applies.
 Query the local runtime before offering SVG output:
 
 ```bash
-asqueel-dbmanager capabilities
+kajenn-dbmanager capabilities
 ```
 
 The same response is available from `POST /capabilities` with `{}`, or the MCP
 tool `capabilities` with no arguments. Python callers can use
-`asqueel_dbmanager.diagrams.diagram_capabilities()`.
+`kajenn_dbmanager.diagrams.diagram_capabilities()`.
 
 With working Graphviz:
 
@@ -302,7 +302,7 @@ With the app mounted at `dbmanager`, use `/dbmanager/capabilities`,
 ```python
 import json
 from pathlib import Path
-from asqueel_dbmanager.diagrams import diagram
+from kajenn_dbmanager.diagrams import diagram
 
 structure = json.loads(Path("schema.json").read_text(encoding="utf-8"))
 result = diagram(structure, format="svg", direction="LR")

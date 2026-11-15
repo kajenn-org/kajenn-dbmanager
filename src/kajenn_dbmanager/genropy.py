@@ -3,7 +3,7 @@
 import os
 from urllib.parse import unquote, urlsplit
 
-from asqueel_dbmanager import operations
+from kajenn_dbmanager import operations
 
 
 class GenropyConnectionError(RuntimeError):
@@ -78,5 +78,5 @@ def introspect_instance(instance, schemas=None):
         return operations.introspect(connection, schemas=schemas)
     except Exception:
         raise GenropyConnectionError(
-            'Cannot read the instance database; check PostgreSQL access and install asqueel-dbmanager[postgresql]'
+            'Cannot read the instance database; check PostgreSQL access and install kajenn-dbmanager[postgresql]'
         ) from None

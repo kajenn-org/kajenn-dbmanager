@@ -12,16 +12,16 @@ from urllib.request import Request, urlopen
 from asqueel_migration.exceptions import SqlValidationError
 from kajenn import AsgiServer
 
-from asqueel_dbmanager.app import DbManagerApp, DbManagerWorker
-from asqueel_dbmanager.backups import BackupStore
-from asqueel_dbmanager.diagrams import DiagramRenderError, diagram, diagram_capabilities
-from asqueel_dbmanager.genropy import (
+from kajenn_dbmanager.app import DbManagerApp, DbManagerWorker
+from kajenn_dbmanager.backups import BackupStore
+from kajenn_dbmanager.diagrams import DiagramRenderError, diagram, diagram_capabilities
+from kajenn_dbmanager.genropy import (
     GenropyConnectionError,
     connection_from_instance,
     introspect_instance,
 )
-from asqueel_dbmanager.operations import DatabaseBusy
-from asqueel_dbmanager.query_profiles import ConnectionCatalog, QueryError
+from kajenn_dbmanager.operations import DatabaseBusy
+from kajenn_dbmanager.query_profiles import ConnectionCatalog, QueryError
 
 
 def _database_command(args):
@@ -128,7 +128,7 @@ def main(argv=None):
     backup_parser = commands.add_parser('backup', help='Back up a Genropy instance database to a local archive store')
     _genropy_argument(backup_parser, required=True)
     backup_parser.add_argument('--backup-dir',
-                               help='Archive store directory (default: ASQUEEL_DBMANAGER_BACKUP_DIR or .dbmanager/backups)')
+                               help='Archive store directory (default: KAJENN_DBMANAGER_BACKUP_DIR or .dbmanager/backups)')
     args = parser.parse_args(argv)
     if args.command == 'db':
         try:
@@ -165,7 +165,7 @@ def main(argv=None):
     if args.command == 'backup':
         try:
             connection = connection_from_instance(args.genropy)
-            root = args.backup_dir or os.environ.get('ASQUEEL_DBMANAGER_BACKUP_DIR', '.dbmanager/backups')
+            root = args.backup_dir or os.environ.get('KAJENN_DBMANAGER_BACKUP_DIR', '.dbmanager/backups')
             result = BackupStore(root).create(connection)
         except GenropyConnectionError as error:
             backup_parser.error(str(error))
@@ -208,7 +208,7 @@ def main(argv=None):
         try:
             import gramlot  # noqa: F401
         except ImportError:
-            parser.error('Install asqueel-dbmanager[ui] to use --ui')
+            parser.error('Install kajenn-dbmanager[ui] to use --ui')
         print(f'DB Manager: http://127.0.0.1:{args.port}/ui/', flush=True)
     AsgiServer(applications=[DbManagerApp, DbManagerWorker]).serve(host='127.0.0.1', port=args.port)
 

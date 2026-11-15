@@ -10,16 +10,16 @@ from conftest import _request
 from cryptography.fernet import Fernet
 from kajenn import AsgiServer
 
-from asqueel_dbmanager import operations
-from asqueel_dbmanager.app import DbManagerApp
-from asqueel_dbmanager.query_profiles import QueryError
-from asqueel_dbmanager.query_sessions import QuerySessions
+from kajenn_dbmanager import operations
+from kajenn_dbmanager.app import DbManagerApp
+from kajenn_dbmanager.query_profiles import QueryError
+from kajenn_dbmanager.query_sessions import QuerySessions
 
 
 @pytest.fixture
 def workbench(tmp_path, monkeypatch):
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_DB_DIR', str(tmp_path / 'db'))
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_STORAGE_KEY', Fernet.generate_key().decode())
+    monkeypatch.setenv('KAJENN_DBMANAGER_DB_DIR', str(tmp_path / 'db'))
+    monkeypatch.setenv('KAJENN_DBMANAGER_STORAGE_KEY', Fernet.generate_key().decode())
     monkeypatch.chdir(tmp_path)
     server = AsgiServer(applications=[(DbManagerApp, {'code': 'db', 'mount': 'dbmanager'})])
     app = server.application_at('dbmanager')
@@ -76,7 +76,7 @@ def test_profile_authorization_and_no_secrets(workbench):
 def test_registration_reuses_encryption_and_does_not_overwrite(workbench, monkeypatch):
     _, app = workbench
     monkeypatch.setattr(operations, 'check_connection', lambda _: {'connected': True})
-    import asqueel_dbmanager.workbench as module
+    import kajenn_dbmanager.workbench as module
     monkeypatch.setattr(module, 'connection_from_instance', lambda _: {'dbname': 'legacy'})
     result = call(app, 'register_genropy', {'database': 'legacy', 'instance': 'invoice'}, owner='alice')
     assert result['source'] == {'kind': 'genropy', 'instance': 'invoice'}

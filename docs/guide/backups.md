@@ -7,7 +7,7 @@ database locking.
 > **Version 0.2.0:** install the optional extras for UI, PostgreSQL and AI queries.
 > Gramlot and AI workflows remain beta features. See [availability](availability.md).
 
-Archives are written beneath `ASQUEEL_DBMANAGER_BACKUP_DIR` (default
+Archives are written beneath `KAJENN_DBMANAGER_BACKUP_DIR` (default
 `.dbmanager/backups`). Clients receive generated IDs, never choose server paths.
 Completed metadata includes the original database name, timestamp, byte size,
 SHA-256 and `pg_dump` version; it does not contain connection credentials.
@@ -32,7 +32,7 @@ publications/subscriptions. Use a freshly created database for restore.
 From the local CLI, resolve a Genropy instance's connection and create a backup:
 
 ```bash
-asqueel-dbmanager backup -g test_invoice_pg --backup-dir ./backups
+kajenn-dbmanager backup -g test_invoice_pg --backup-dir ./backups
 ```
 
 This executes synchronously and returns metadata as JSON on stdout. The optional

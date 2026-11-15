@@ -7,9 +7,9 @@ import pytest
 from conftest import _request
 from kajenn import AsgiServer
 
-from asqueel_dbmanager import __main__ as cli
-from asqueel_dbmanager.app import DbManagerApp
-from asqueel_dbmanager.diagram_pages import DiagramPages
+from kajenn_dbmanager import __main__ as cli
+from kajenn_dbmanager.app import DbManagerApp
+from kajenn_dbmanager.diagram_pages import DiagramPages
 
 STRUCTURE = {'root': {'entity': 'db', 'entity_name': 'example', 'schemas': {}}}
 
@@ -17,7 +17,7 @@ STRUCTURE = {'root': {'entity': 'db', 'entity_name': 'example', 'schemas': {}}}
 @pytest.mark.parametrize('mount', ['', 'dbmanager'])
 def test_publish_and_view_persisted_snapshot(tmp_path, monkeypatch, mount):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_DIAGRAM_DIR', str(tmp_path / 'pages'))
+    monkeypatch.setenv('KAJENN_DBMANAGER_DIAGRAM_DIR', str(tmp_path / 'pages'))
 
     def server():
         return AsgiServer(applications=[(DbManagerApp, {'mount': mount})])
@@ -108,7 +108,7 @@ def test_cytoscape_snapshot_escapes_embedded_graph_data(server):
 
 def test_missing_renderer_does_not_publish(server, monkeypatch, tmp_path):
     root = tmp_path / 'pages'
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_DIAGRAM_DIR', str(root))
+    monkeypatch.setenv('KAJENN_DBMANAGER_DIAGRAM_DIR', str(root))
     monkeypatch.setenv('PATH', '')
     status, body = _request(server, '/publish_diagram', method='POST', payload={'structure': STRUCTURE})
     assert status == 503 and b'Graphviz' in body

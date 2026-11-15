@@ -7,8 +7,8 @@ from conftest import _request
 from genro_routes import route
 from kajenn import AsgiServer, RoutedApplication
 
-from asqueel_dbmanager import operations
-from asqueel_dbmanager.app import _OPERATIONS, DbManagerApp
+from kajenn_dbmanager import operations
+from kajenn_dbmanager.app import _OPERATIONS, DbManagerApp
 
 
 class CompanionApp(RoutedApplication):

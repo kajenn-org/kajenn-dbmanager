@@ -11,10 +11,10 @@ from asqueel_migration import JsonStructureProducer
 from conftest import _request
 from psycopg import sql
 
-from asqueel_dbmanager import genropy, operations
-from asqueel_dbmanager.__main__ import main
-from asqueel_dbmanager.backups import BackupStore
-from asqueel_dbmanager.diagrams import diagram
+from kajenn_dbmanager import genropy, operations
+from kajenn_dbmanager.__main__ import main
+from kajenn_dbmanager.backups import BackupStore
+from kajenn_dbmanager.diagrams import diagram
 
 pytestmark = pytest.mark.postgresql
 
@@ -109,7 +109,7 @@ def test_introspect_discovers_user_schemas_when_omitted(databases):
 
 
 def test_query_read_is_parameterized_bounded_and_read_only(databases):
-    from asqueel_dbmanager.query_sql import ReadQueryError, execute_read
+    from kajenn_dbmanager.query_sql import ReadQueryError, execute_read
 
     connection = databases[0]
     with psycopg.connect(**connection) as conn:
@@ -149,9 +149,9 @@ def test_query_read_is_parameterized_bounded_and_read_only(databases):
 def test_postgresql_error_is_repaired_and_raw_diagnostics_are_not_exposed(databases, tmp_path):
     from cryptography.fernet import Fernet
 
-    from asqueel_dbmanager.query_profiles import ConnectionCatalog
-    from asqueel_dbmanager.query_sessions import QuerySessions
-    from asqueel_dbmanager.query_sql import ReadQueryError, execute_read
+    from kajenn_dbmanager.query_profiles import ConnectionCatalog
+    from kajenn_dbmanager.query_sessions import QuerySessions
+    from kajenn_dbmanager.query_sql import ReadQueryError, execute_read
 
     connection = databases[0]
     with psycopg.connect(**connection) as conn:
@@ -325,10 +325,10 @@ def test_workbench_registration_migration_backup_restore(databases, server, tmp_
     """The UI service uses the same reviewed operations on disposable databases."""
     from cryptography.fernet import Fernet
 
-    from asqueel_dbmanager.query_profiles import QueryError
+    from kajenn_dbmanager.query_profiles import QueryError
 
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_DB_DIR', str(tmp_path / 'profiles'))
-    monkeypatch.setenv('ASQUEEL_DBMANAGER_STORAGE_KEY', Fernet.generate_key().decode())
+    monkeypatch.setenv('KAJENN_DBMANAGER_DB_DIR', str(tmp_path / 'profiles'))
+    monkeypatch.setenv('KAJENN_DBMANAGER_STORAGE_KEY', Fernet.generate_key().decode())
     app = server.application_at('')
     def call(action, **data):
         return app._workbench.call(action, data, 'local', True)
@@ -355,7 +355,7 @@ def test_asqueel_registered_plan_apply_and_drift(databases, tmp_path, monkeypatc
     from asqueel.registry import DatabaseRegistry
     from test_asqueel_configs import RECIPE
 
-    from asqueel_dbmanager import asqueel_configs
+    from kajenn_dbmanager import asqueel_configs
 
     connection = databases[0]
     monkeypatch.setenv('DBMANAGER_TEST_DSN', psycopg.conninfo.make_conninfo(**connection))

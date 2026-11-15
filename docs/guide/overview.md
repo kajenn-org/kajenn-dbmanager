@@ -12,7 +12,7 @@ archives and restores them into existing empty databases.
 | --- | --- |
 | Asqueel | Application models, query construction and database access |
 | Asqueel Migration | Normalize schema models, compare structures, generate and execute migration SQL |
-| Asqueel DB Manager | Administration endpoints, encrypted profiles, diagrams, query sessions and web workbench |
+| Kajenn DB Manager | Administration endpoints, encrypted profiles, diagrams, query sessions and web workbench |
 | Gramlot | Workbench pages built with native HTML controls and iframe navigation |
 | Kajenn | HTTP/MCP protocols, generated OpenAPI and persistent task execution |
 

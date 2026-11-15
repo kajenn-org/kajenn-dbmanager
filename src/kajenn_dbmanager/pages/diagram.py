@@ -1,4 +1,4 @@
-from asqueel_dbmanager.ui_pages import PageBase
+from kajenn_dbmanager.ui_pages import PageBase
 
 
 class Page(PageBase):

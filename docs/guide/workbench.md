@@ -13,8 +13,8 @@ advanced components from the Gramlot POC are not dependencies.
 Install the released package:
 
 ```bash
-python -m pip install 'asqueel-dbmanager[ui,queries]>=0.2.0'
-asqueel-dbmanager --ui --port 8000
+python -m pip install 'kajenn-dbmanager[ui,queries]>=0.2.0'
+kajenn-dbmanager --ui --port 8000
 ```
 
 Open [the local workbench](http://127.0.0.1:8000/ui/). When the app is mounted at

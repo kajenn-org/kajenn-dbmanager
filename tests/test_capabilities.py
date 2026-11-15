@@ -6,8 +6,8 @@ import subprocess
 import pytest
 from conftest import _request
 
-from asqueel_dbmanager import diagrams
-from asqueel_dbmanager.__main__ import main
+from kajenn_dbmanager import diagrams
+from kajenn_dbmanager.__main__ import main
 
 
 @pytest.mark.parametrize('outcome', [
@@ -63,6 +63,6 @@ def test_capabilities_rest_mcp_and_cli_agree_without_graphviz(server, monkeypatc
     assert json.loads(json.loads(body)['result']['content'][0]['text']) == expected
     def forbidden(*args, **kwargs):
         pytest.fail('The capabilities command must not construct a server')
-    monkeypatch.setattr('asqueel_dbmanager.__main__.AsgiServer', forbidden)
+    monkeypatch.setattr('kajenn_dbmanager.__main__.AsgiServer', forbidden)
     main(['capabilities'])
     assert json.loads(capsys.readouterr().out) == expected
