@@ -7,8 +7,15 @@ from threading import RLock
 
 from . import operations
 from .genropy import GenropyConnectionError, connection_from_instance
-from .query_profiles import QueryError
+from .query_profiles import QueryError, cluster_reference
 from .query_sessions import structure_details
+
+# Actions that need the dbmanager_admin tag, cluster actions included.
+ADMIN_ACTIONS = {'register', 'register_genropy', 'apply', 'backup', 'restore', 'cluster_contexts',
+                 'cluster_list', 'cluster_databases', 'cluster_external', 'cluster_register'}
+# Profile actions that open a database connection; the others read only the catalog.
+CONNECTED_ACTIONS = {'check', 'introspect', 'diagram', 'plan', 'apply', 'prepare', 'backup',
+                     'restore'}
 
 
 def now():
@@ -32,8 +39,10 @@ class Workbench:
                 raise QueryError('This operation requires the dbmanager_admin tag')
             from .asqueel_configs import dispatch
             return dispatch(action, data)
-        if action in {'register', 'register_genropy', 'apply', 'backup', 'restore'} and not admin:
+        if action in ADMIN_ACTIONS and not admin:
             raise QueryError('This operation requires the dbmanager_admin tag')
+        if action.startswith('cluster_'):
+            return self._cluster_action(action, data, owner)
         if action == 'list':
             result = []
             for item in self.catalog.list(owner):
@@ -74,7 +83,39 @@ class Workbench:
                 return queries.status(session, owner)
             return queries.close(session, owner)
         name = data.get('database')
-        connection, version = self.catalog.load(name, owner)
+        stored, version = self.catalog.load(name, owner)
+        if action not in CONNECTED_ACTIONS:
+            return self._profile_action(action, data, name, stored, version, owner)
+        with self.catalog.connect(stored) as connection:
+            return self._profile_action(action, data, name, connection, version, owner)
+
+    def _cluster_action(self, action, data, owner):
+        """Cluster actions; ``call`` has already required the dbmanager_admin tag."""
+        clusters = self.catalog.clusters
+        if action == 'cluster_contexts':
+            return {'contexts': clusters.list_contexts()}
+        if action == 'cluster_list':
+            return {'context': data.get('context'), 'clusters': clusters.list_clusters(data.get('context'))}
+        if action == 'cluster_databases':
+            return {'cluster': cluster_reference(data.get('cluster')),
+                    'databases': clusters.list_databases(data.get('cluster'))}
+        if action == 'cluster_external':
+            return clusters.save_external(data.get('name'), data.get('connection'),
+                                          replace=data.get('replace') is True)
+        if action == 'cluster_register':
+            name = data.get('database')
+            self.catalog._path(name)
+            stored = {'cluster': cluster_reference(data.get('cluster')), 'dbname': data.get('dbname')}
+            with self.catalog.connect(stored) as connection:
+                operations.check_connection(connection)
+            source = {'kind': 'cluster', **stored['cluster']}
+            with self.lock:
+                saved = self.catalog.save(name, stored, users=[owner])
+                self.catalog.write_metadata(name, {'source': source}, owner)
+            return {**saved, 'source': source, 'enrollment': 'not_enrolled'}
+        raise QueryError('Unknown cluster operation')
+
+    def _profile_action(self, action, data, name, connection, version, owner):
         if action == 'check':
             return operations.check_connection(connection)
         if action == 'introspect':

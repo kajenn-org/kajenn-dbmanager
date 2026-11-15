@@ -74,8 +74,9 @@ class QuerySessions:
             self._expire()
             if self._stop.is_set() or len(self._sessions) >= 32:
                 raise QueryError('Query session capacity is unavailable')
-            connection, version = self.catalog.load(database, owner)
-            details = structure_details(self.introspect(connection))
+            stored, version = self.catalog.load(database, owner)
+            with self.catalog.connect(stored) as connection:
+                details = structure_details(self.introspect(connection))
             del connection
             guide = self.catalog.read_metadata(database, owner).get('guide', {})
             if guide.get('status') == 'ready':
@@ -184,11 +185,12 @@ class QuerySessions:
                           'execution_errors': failures}
                 if not sql or output == 'sql':
                     break
-                connection = self._check(session)
+                stored = self._check(session)
                 attempts += 1
                 result['execution_attempts'] = attempts
                 try:
-                    result['result'] = self.execute(connection, sql, params, max_rows)
+                    with self.catalog.connect(stored) as connection:
+                        result['result'] = self.execute(connection, sql, params, max_rows)
                 except ReadQueryError as error:
                     failures.append(error.diagnostic)
                     if not error.retryable or correction == 2:
@@ -208,7 +210,7 @@ class QuerySessions:
                     result.update(status='results', executed=True, database_validated=True)
                     break
                 finally:
-                    del connection
+                    del stored
             # Conversation contains proposals only, never rows or connection credentials.
             session.history = [*session.history, user, {'role': 'assistant', 'content': json.dumps({
                 'sql': sql, 'params': result['params'], 'assumptions': assumptions,

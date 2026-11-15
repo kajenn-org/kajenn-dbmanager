@@ -31,6 +31,7 @@ workbench scope.
    :caption: Use DB Manager
 
    guide/workbench
+   guide/clusters
    guide/asqueel-configurations
    guide/migrations
    guide/cli

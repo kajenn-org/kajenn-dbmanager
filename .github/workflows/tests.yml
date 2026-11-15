@@ -34,7 +34,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client-16 graphviz
           echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
-      - run: python -m pip install -e '.[dev,postgresql,ui,queries,asqueel]'
+      - run: python -m pip install -e '.[dev,postgresql,ui,queries,asqueel,clusters]'
       - run: python -m pip check
       - run: ruff check src tests
       - run: pytest -q

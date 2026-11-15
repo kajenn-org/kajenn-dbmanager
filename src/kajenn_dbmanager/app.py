@@ -27,10 +27,11 @@ from kajenn.tasks import new_descriptor
 from . import __version__, operations
 from .access import caller, check_access_mode, check_http, check_identity
 from .backups import BackupStore
+from .clusters import ClusterRegistry
 from .cytoscape_view import ASSETS, asset, interactive_viewer
 from .diagram_pages import DiagramPages, viewer
 from .diagrams import DiagramRenderError, diagram, diagram_capabilities
-from .query_profiles import QueryError
+from .query_profiles import ConnectionCatalog, QueryError
 from .query_sessions import QuerySessions
 
 _QUERY_OWNER = ContextVar('dbmanager_query_owner', default='local')
@@ -40,7 +41,7 @@ _OPERATIONS = {
     'introspect', 'plan', 'apply', 'check_connection', 'backup', 'backups',
     'verify_backup', 'restore', 'submit', 'job', 'diagram', 'capabilities', 'publish_diagram',
     'databases', 'open_query_session', 'ask_query', 'query_session', 'close_query_session',
-    'console_action',
+    'console_action', 'cluster_contexts', 'cluster_list', 'cluster_databases',
 }
 
 
@@ -122,12 +123,20 @@ class DbManagerApp(RoutedApplication):
     def _queries(self):
         with self._query_lock:
             if self._query_manager is None:
-                self._query_manager = QuerySessions()
+                catalog = ConnectionCatalog()
+                catalog.clusters = ClusterRegistry(catalog)
+                self._query_manager = QuerySessions(catalog)
             return self._query_manager
+
+    @property
+    def clusters(self):
+        """The clusters this service reaches, sharing the encrypted catalog."""
+        return self._queries().catalog.clusters
 
     def on_shutdown(self):
         if self._query_manager is not None:
             self._query_manager.shutdown()
+            self._query_manager.catalog.clusters.close()
         super().on_shutdown()
 
     async def execute(self, request):
@@ -250,6 +259,25 @@ class DbManagerApp(RoutedApplication):
         if name not in profiles:
             raise ValueError('Unknown connection profile')
         return operations.connection_params(profiles[name])
+
+    @route(channel_channels='mcp,api', openapi_method='post')
+    def cluster_contexts(self) -> dict:
+        """List the Kubernetes contexts and the external context; requires dbmanager_admin."""
+        return _call(lambda: self._workbench.call(
+            'cluster_contexts', {}, _QUERY_OWNER.get(), _QUERY_ADMIN.get()))
+
+    @route(channel_channels='mcp,api', openapi_method='post')
+    def cluster_list(self, context: str) -> dict:
+        """List the CloudNativePG clusters of a context, or the external clusters."""
+        return _call(lambda: self._workbench.call(
+            'cluster_list', {'context': context}, _QUERY_OWNER.get(), _QUERY_ADMIN.get()))
+
+    @route(channel_channels='mcp,api', openapi_method='post')
+    def cluster_databases(self, context: str, cluster: str, namespace: str = '') -> dict:
+        """List the databases of a cluster, with owner and size; never returns credentials."""
+        reference = {'context': context, 'namespace': namespace, 'cluster': cluster}
+        return _call(lambda: self._workbench.call(
+            'cluster_databases', {'cluster': reference}, _QUERY_OWNER.get(), _QUERY_ADMIN.get()))
 
     @route(channel_channels='mcp,api', openapi_method='post')
     def introspect(self, connection: dict, schemas: list[str] | None = None) -> dict:

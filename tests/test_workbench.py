@@ -258,7 +258,7 @@ def test_gramlot_bootstrap_and_every_page_renders(workbench):
     assert status == 200 and b'/ui/assets/gramlot.js' in body
     assert b"frame-ancestors 'self'" in headers[b'content-security-policy']
     assert b'HttpOnly' in headers[b'set-cookie']
-    for name in ('index', 'home', 'databases', 'genropy', 'migrations', 'backups',
+    for name in ('index', 'home', 'databases', 'clusters', 'genropy', 'migrations', 'backups',
                  'enrollment', 'guide', 'chat', 'diagram', 'asqueel'):
         page, owner = _open_page(server, f'/ui/{name}')
         status, body = _render(server, page, [(b'cookie', owner)])

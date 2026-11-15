@@ -12,6 +12,7 @@ document or tool registry is needed; signatures and route metadata define both.
 | `check_connection` | Connectivity, server version and migration capabilities |
 | `introspect` | Normalized JSON of accessible non-system schemas, optionally limited to named schemas |
 | `databases` | Accessible encrypted database profile names |
+| `cluster_contexts`, `cluster_list`, `cluster_databases` | Contexts, clusters and their databases; administrators only, see [clusters](clusters.md) |
 | `console_action` | Workbench operation using authorized named profiles; see [workbench](workbench.md) |
 | `open_query_session` | Select a database, introspect its structure and initialize a cached LLM session |
 | `ask_query` | Generate SQL or return bounded read results for a natural-language question |

@@ -11,7 +11,7 @@ from .access import caller
 
 NAVIGATION = (
     ('start', 'Start here', (('home', 'Getting started'),)),
-    ('registration', 'Registration', (('databases', 'Databases'),
+    ('registration', 'Registration', (('databases', 'Databases'), ('clusters', 'Clusters'),
                                       ('genropy', 'Genropy legacy instances'),
                                       ('asqueel', 'Asqueel configurations'))),
     ('operations', 'Operations', (('diagram', 'Database diagram'), ('migrations', 'Migrations'),

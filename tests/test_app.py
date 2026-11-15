@@ -17,7 +17,7 @@ def test_generated_openapi_and_mcp_match(server):
     assert '/run_job' not in paths
     for name in _OPERATIONS:
         assert set(paths[f'/{name}']) == {'post'}
-        if name not in {'backups', 'capabilities', 'databases'}:
+        if name not in {'backups', 'capabilities', 'databases', 'cluster_contexts'}:
             assert 'requestBody' in paths[f'/{name}']['post']
     status, body = _request(server, '/_meta/mcp', method='POST', payload={
         'jsonrpc': '2.0', 'id': 1, 'method': 'tools/list', 'params': {},
